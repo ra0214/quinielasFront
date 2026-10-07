@@ -23,11 +23,20 @@ import { IconoComponent } from '../../atoms/icono/icono.component';
     </div>
   `,
   styles: `
-    .buscador {
-      position: relative;
+    :host {
+      display: block;
       flex: 1;
       min-width: 220px;
       max-width: 380px;
+    }
+    @media (max-width: 720px) {
+      :host {
+        min-width: 100%;
+        max-width: none;
+      }
+    }
+    .buscador {
+      position: relative;
     }
     .buscador input {
       width: 100%;
@@ -42,12 +51,6 @@ import { IconoComponent } from '../../atoms/icono/icono.component';
     .buscador input:focus {
       border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-    }
-    @media (max-width: 720px) {
-      .buscador {
-        max-width: none;
-        min-width: 100%;
-      }
     }
     .buscador .lupa {
       position: absolute;

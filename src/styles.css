@@ -89,6 +89,19 @@ body {
   margin-bottom: 18px;
 }
 
+/* Evita la fila huérfana con hueco: 1 columna en teléfono, 2 en tablet */
+@media (max-width: 640px) {
+  .resumen {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .resumen {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* ===== Formularios ===== */
 .campo {
   margin-bottom: 16px;
