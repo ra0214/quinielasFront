@@ -1,5 +1,19 @@
+<div class="topbar">
+  <button
+    type="button"
+    class="topbar-boton"
+    (click)="menuAbierto = !menuAbierto"
+    aria-label="Abrir menú">
+    <app-icono nombre="menu" tamano="22px" />
+  </button>
+  <div class="topbar-marca">
+    <strong>Quinielas</strong>
+    <span>Sistema de gestión</span>
+  </div>
+</div>
+
 <div class="layout">
-  <app-sidebar />
+  <app-sidebar [abierta]="menuAbierto" (navegando)="menuAbierto = false" />
 
   <div class="contenido">
     <app-banner-anuncio />
@@ -9,5 +23,9 @@
     </main>
   </div>
 </div>
+
+@if (menuAbierto) {
+  <div class="velo" (click)="menuAbierto = false"></div>
+}
 
 <app-toast-container />

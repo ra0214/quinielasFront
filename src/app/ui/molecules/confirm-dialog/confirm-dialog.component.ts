@@ -65,6 +65,22 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
       justify-content: flex-end;
       gap: 10px;
     }
+
+    @media (max-width: 560px) {
+      .overlay {
+        align-items: flex-end;
+        padding: 12px;
+      }
+      .dialog {
+        border-radius: 14px;
+      }
+      .dialog-acciones {
+        flex-direction: column-reverse;
+      }
+      .dialog-acciones .btn {
+        width: 100%;
+      }
+    }
   `,
 })
 export class ConfirmDialogComponent {

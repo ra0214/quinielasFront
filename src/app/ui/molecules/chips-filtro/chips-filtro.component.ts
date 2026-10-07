@@ -65,6 +65,16 @@ export interface OpcionChip {
       background: #16a34a;
       border-color: #16a34a;
     }
+
+    @media (max-width: 720px) {
+      .chips {
+        gap: 6px;
+      }
+      .chips button {
+        min-height: 40px;
+        padding: 8px 14px;
+      }
+    }
   `,
 })
 export class ChipsFiltroComponent {

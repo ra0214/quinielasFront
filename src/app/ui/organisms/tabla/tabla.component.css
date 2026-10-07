@@ -73,6 +73,70 @@
   margin-left: 6px;
 }
 
+/* ===== Responsive: las filas se convierten en tarjetas ===== */
+@media (max-width: 720px) {
+  .tabla {
+    min-width: 0;
+  }
+
+  .tabla-wrap {
+    overflow-x: visible;
+  }
+
+  .tabla thead {
+    display: none;
+  }
+
+  .tabla tbody tr {
+    display: block;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    background: #fff;
+  }
+
+  .tabla tbody tr:hover {
+    background: #fff;
+  }
+
+  .tabla tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: right;
+  }
+
+  .tabla tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .tabla tbody td::before {
+    content: attr(data-etiqueta);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    flex-shrink: 0;
+  }
+
+  .tabla tbody td.num {
+    text-align: right;
+  }
+
+  .tabla tbody td.acciones::before {
+    content: none;
+  }
+
+  .tabla tbody td.acciones {
+    justify-content: flex-end;
+  }
+}
+
 .vacio {
   padding: 40px 16px;
   text-align: center;

@@ -43,6 +43,12 @@ import { IconoComponent } from '../../atoms/icono/icono.component';
       border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
     }
+    @media (max-width: 720px) {
+      .buscador {
+        max-width: none;
+        min-width: 100%;
+      }
+    }
     .buscador .lupa {
       position: absolute;
       left: 10px;

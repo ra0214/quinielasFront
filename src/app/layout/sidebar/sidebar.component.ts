@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { IconoComponent, IconoNombre } from '../../ui/atoms/icono/icono.component';
 
@@ -14,7 +14,7 @@ export interface ItemMenu {
   standalone: true,
   imports: [RouterLink, RouterLinkActive, IconoComponent],
   template: `
-    <aside class="sidebar">
+    <aside class="sidebar" [class.abierta]="abierta">
       <div class="marca">
         <span class="marca-logo"><app-icono nombre="diana" tamano="26px" /></span>
         <div>
@@ -25,7 +25,7 @@ export interface ItemMenu {
 
       <nav>
         @for (item of items; track item.ruta) {
-          <a [routerLink]="item.ruta" routerLinkActive="activo">
+          <a [routerLink]="item.ruta" routerLinkActive="activo" (click)="navegando.emit()">
             <span class="icono"><app-icono [nombre]="item.icono" tamano="18px" /></span>
             {{ item.etiqueta }}
           </a>
@@ -113,9 +113,35 @@ export interface ItemMenu {
       color: #64748b;
       border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
+
+    @media (max-width: 860px) {
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(280px, 84vw);
+        height: 100vh;
+        z-index: 120;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+      }
+      .sidebar.abierta {
+        transform: translateX(0);
+        box-shadow: 0 0 40px rgba(15, 23, 42, 0.5);
+      }
+      nav a {
+        min-height: 44px;
+      }
+      .marca-logo {
+        font-size: 22px;
+      }
+    }
   `,
 })
 export class SidebarComponent {
+  @Input() abierta = false;
+  @Output() navegando = new EventEmitter<void>();
   @Input() items: ItemMenu[] = [
     { ruta: '/clientes', etiqueta: 'Clientes', icono: 'usuarios' },
     { ruta: '/ediciones', etiqueta: 'Ediciones', icono: 'calendario' },

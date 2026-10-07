@@ -51,3 +51,9 @@
   font-size: 12px;
   color: var(--texto-suave);
 }
+
+@media (max-width: 720px) {
+  .filtro-select {
+    width: 100%;
+  }
+}

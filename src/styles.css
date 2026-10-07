@@ -199,3 +199,22 @@ body {
 .texto-rojo { color: var(--rojo); font-weight: 700; }
 .texto-verde { color: var(--verde); font-weight: 700; }
 .saldo-cero { color: var(--texto-suave); }
+
+/* ===== Ajustes móviles globales ===== */
+@media (max-width: 720px) {
+  /* Evita el zoom automático de iOS al enfocar campos */
+  .campo input,
+  .campo select,
+  .campo textarea {
+    font-size: 16px;
+  }
+
+  .toolbar {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .seccion {
+    padding: 14px;
+  }
+}

@@ -19,3 +19,73 @@
   padding: 24px;
   flex: 1;
 }
+
+/* ===== Barra superior (solo móvil/tablet) ===== */
+.topbar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(180deg, #0f172a, #1e293b);
+  color: #fff;
+  padding: 8px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 60;
+}
+
+.topbar-boton {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.topbar-boton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.topbar-marca {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.topbar-marca strong {
+  font-size: 15px;
+}
+
+.topbar-marca span {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* ===== Velo para cerrar el menú en móvil ===== */
+.velo {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+@media (max-width: 860px) {
+  .topbar {
+    display: flex;
+  }
+
+  .pagina {
+    padding: 16px 14px;
+  }
+}
+
+@media (min-width: 861px) {
+  .velo {
+    display: none;
+  }
+}

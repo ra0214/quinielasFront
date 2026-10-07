@@ -35,6 +35,19 @@ import { Component, Input } from '@angular/core';
       color: #64748b;
       font-size: 13px;
     }
+
+    @media (max-width: 720px) {
+      .pagina-titulo {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .pagina-titulo .acciones {
+        width: 100%;
+      }
+      .pagina-titulo .acciones .btn {
+        flex: 1;
+      }
+    }
   `,
 })
 export class EncabezadoPaginaComponent {

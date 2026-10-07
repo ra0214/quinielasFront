@@ -21,3 +21,9 @@
 .barra-relleno.llena {
   background: var(--verde);
 }
+
+@media (max-width: 720px) {
+  .selector {
+    max-width: none;
+  }
+}

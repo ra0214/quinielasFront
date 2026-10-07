@@ -96,6 +96,40 @@ import { IconoComponent } from '../../atoms/icono/icono.component';
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    @media (max-width: 560px) {
+      .overlay {
+        align-items: flex-end;
+        padding: 0;
+      }
+      .modal,
+      .modal-grande {
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        max-height: 92dvh;
+        overflow-y: auto;
+        animation-name: modelo-lateral;
+      }
+      .modal-cabecera {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 1;
+      }
+      .modal-pie {
+        position: sticky;
+        bottom: 0;
+        border-radius: 0;
+        box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.06);
+      }
+      .modal-pie .btn {
+        flex: 1;
+      }
+      @keyframes modelo-lateral {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    }
   `,
 })
 export class ModalComponent {

@@ -3,6 +3,7 @@ import { Component, Input } from '@angular/core';
 export type IconoNombre =
   | 'agregar'
   | 'buscar'
+  | 'menu'
   | 'cerrar'
   | 'editar'
   | 'eliminar'
@@ -47,6 +48,11 @@ export type IconoNombre =
         @case ('agregar') {
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
+        }
+        @case ('menu') {
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
         }
         @case ('buscar') {
           <circle cx="11" cy="11" r="8" />
