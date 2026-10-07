@@ -1,0 +1,53 @@
+/* Estilos locales mínimos: barra de progreso, resaltado de fila y select de filtro.
+   El resaltado de fila aplica sobre el `<tr>` interno de app-tabla gracias a `::ng-deep`
+   y al marcador de clase presente en la celda "estado" (badge COMPLETADA/CANCELADA). */
+
+.filtro-select {
+  padding: 9px 12px;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  outline: none;
+  min-width: 210px;
+}
+
+.filtro-select:focus {
+  border-color: var(--azul);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+:host ::ng-deep .tabla tbody tr:has(.fila-completada) {
+  background: #eff6ff;
+}
+
+:host ::ng-deep .tabla tbody tr:has(.fila-cancelada) {
+  background: #fef2f2;
+}
+
+.progreso {
+  min-width: 150px;
+}
+
+.progreso-barra {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ambar);
+  max-width: 100%;
+  transition: width 0.3s ease;
+}
+
+.progreso-barra.llena {
+  background: var(--azul);
+}
+
+.progreso-datos {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--texto-suave);
+}

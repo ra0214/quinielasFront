@@ -1,0 +1,14 @@
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { SidebarComponent } from './layout/sidebar/sidebar.component';
+import { BannerAnuncioComponent } from './layout/banner-anuncio/banner-anuncio.component';
+import { ToastContainerComponent } from './ui/molecules/toast-container/toast-container.component';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [RouterOutlet, SidebarComponent, BannerAnuncioComponent, ToastContainerComponent],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css',
+})
+export class AppComponent {}

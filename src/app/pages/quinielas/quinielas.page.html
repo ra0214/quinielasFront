@@ -1,0 +1,161 @@
+<app-encabezado-pagina
+  titulo="Quinielas"
+  descripcion="Variantes, progreso de recaudación y control de estados">
+  <button class="btn btn-primario" (click)="nuevo()"><app-icono nombre="agregar" /> Nueva quiniela</button>
+</app-encabezado-pagina>
+
+<div class="resumen">
+  <app-tarjeta-resumen etiqueta="Total quinielas" [valor]="totalQuinielas" tono="azul" />
+  <app-tarjeta-resumen etiqueta="En juego" [valor]="contar('EN_JUEGO')" tono="verde" />
+  <app-tarjeta-resumen etiqueta="Completadas" [valor]="contar('COMPLETADA')" tono="azul" />
+  <app-tarjeta-resumen etiqueta="Canceladas" [valor]="contar('CANCELADA')" tono="rojo" />
+</div>
+
+<div class="toolbar">
+  <app-chips-filtro
+    [opciones]="opcionesFiltroEstado"
+    [activo]="filtroEstado"
+    (cambio)="cambiarFiltroEstado($event)" />
+  <select class="filtro-select" [(ngModel)]="filtroEdicion" aria-label="Filtrar por edición">
+    <option [ngValue]="0">Todas las ediciones</option>
+    @for (e of ediciones(); track e.id_edicion) {
+      <option [ngValue]="e.id_edicion">{{ e.nombre_edicion }}</option>
+    }
+  </select>
+  <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
+</div>
+
+@if (errorApi) {
+  <div class="aviso aviso-error">{{ errorApi }}</div>
+}
+
+<app-tabla
+  [columnas]="columnas"
+  [filas]="lista"
+  [cargando]="cargando"
+  columnaOrden="nombre_edicion"
+  trackClave="id_quiniela"
+  iconoVacio="diana"
+  [mensajeVacio]="quinielas().length === 0 ? 'Aún no hay quinielas registradas' : 'No hay quinielas con esos filtros'">
+  <ng-template celda="nombre_edicion" let-fila>
+    <strong>{{ fila.nombre_edicion }}</strong>
+  </ng-template>
+  <ng-template celda="progreso" let-fila>
+    @if (progreso(fila.id_quiniela); as p) {
+      <div class="progreso">
+        <div
+          class="progreso-barra"
+          [class.llena]="p.porcentaje >= 100"
+          [style.width.%]="p.porcentaje > 100 ? 100 : p.porcentaje">
+        </div>
+      </div>
+      <div class="progreso-datos">
+        <strong>{{ p.porcentaje.toFixed(1) }}%</strong>
+        @if (p.faltante > 0) {
+          <span class="texto-rojo">Faltan {{ moneda(p.faltante) }}</span>
+        } @else {
+          <span class="texto-verde">Meta alcanzada</span>
+        }
+      </div>
+    } @else {
+      <span class="saldo-cero">Sin datos de aportes</span>
+    }
+  </ng-template>
+  <ng-template celda="estado" let-fila>
+    <app-badge
+      [class.fila-completada]="fila.estado === 'COMPLETADA'"
+      [class.fila-cancelada]="fila.estado === 'CANCELADA'"
+      [valor]="fila.estado"
+      [etiqueta]="etiquetaEstado(fila.estado)" />
+  </ng-template>
+  <ng-template celda="acciones" let-fila>
+    <button
+      class="btn btn-mini btn-secundario"
+      (click)="abrirAportes(fila)"
+      title="Registrar aportes de la quiniela">
+      <app-icono nombre="monedas" /> Aportes
+    </button>
+    <button class="btn btn-mini btn-ghost" (click)="editar(fila)">
+      <app-icono nombre="editar" /> Editar
+    </button>
+    <button
+      class="btn btn-mini btn-peligro"
+      (click)="eliminar(fila)"
+      title="Eliminar quiniela"
+      aria-label="Eliminar quiniela">
+      <app-icono nombre="eliminar" />
+    </button>
+  </ng-template>
+</app-tabla>
+
+<app-modal
+  [visible]="modalVisible"
+  [titulo]="editandoId === null ? 'Nueva quiniela' : 'Editar quiniela'"
+  (cerrar)="cerrarModal()">
+  @if (errorFormulario) {
+    <div class="aviso aviso-error">{{ errorFormulario }}</div>
+  }
+  <div class="formulario-grid">
+    <div class="campo">
+      <label>Edición <span class="req">*</span></label>
+      <select [(ngModel)]="formulario.id_edicion" [disabled]="editandoId !== null">
+        <option [ngValue]="0" disabled>Selecciona una edición…</option>
+        @for (e of ediciones(); track e.id_edicion) {
+          <option [ngValue]="e.id_edicion">{{ e.nombre_edicion }}</option>
+        }
+      </select>
+      @if (editandoId !== null) {
+        <div class="ayuda">La edición no se puede cambiar al editar.</div>
+      }
+    </div>
+    <div class="campo">
+      <label>Variante <span class="req">*</span></label>
+      <select [(ngModel)]="formulario.nombre_variante">
+        @for (v of variantes; track v) {
+          <option [value]="v">{{ v }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label>Precio por boleto <span class="req">*</span></label>
+      <input type="number" min="0" step="0.5" [(ngModel)]="formulario.precio" placeholder="Ej. 50" />
+      <div class="ayuda">Debe ser mayor a 0.</div>
+    </div>
+    <div class="campo">
+      <label>Monto meta</label>
+      <input type="number" min="0" step="1" [(ngModel)]="formulario.monto_meta" placeholder="Ej. 5000" />
+      <div class="ayuda">Puede quedar en 0 si aún no hay meta.</div>
+    </div>
+    <div class="campo">
+      <label>Fecha y hora límite <span class="req">*</span></label>
+      <input type="datetime-local" [(ngModel)]="formulario.fecha_limite" required />
+      <div class="ayuda">Fecha y hora límite para recibir aportes.</div>
+    </div>
+    @if (editandoId !== null) {
+      <div class="campo">
+        <label>Estado <span class="req">*</span></label>
+        <select [(ngModel)]="formulario.estado">
+          @for (s of estados; track s) {
+            <option [value]="s">{{ etiquetaEstado(s) }}</option>
+          }
+        </select>
+      </div>
+    }
+  </div>
+
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
+    <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
+      {{ guardando ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+</app-modal>
+
+<app-confirm-dialog
+  [visible]="!!pendiente"
+  titulo="Eliminar quiniela"
+  [mensaje]="'¿Seguro que deseas eliminar la quiniela ' + (pendiente?.nombre_variante ?? '') + ' de ' + (pendiente?.nombre_edicion ?? '') + '? Esta acción no se puede deshacer.'"
+  textoConfirmar="Eliminar"
+  (confirmar)="confirmarEliminacion()"
+  (cancelar)="pendiente = null">
+</app-confirm-dialog>

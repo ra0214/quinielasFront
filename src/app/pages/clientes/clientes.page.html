@@ -1,0 +1,85 @@
+<app-encabezado-pagina
+  titulo="Clientes"
+  descripcion="Catálogo ordenado, búsqueda, movimientos y eliminación">
+  <button class="btn btn-primario" (click)="nuevo()"><app-icono nombre="agregar" /> Nuevo cliente</button>
+</app-encabezado-pagina>
+
+<div class="resumen">
+  <app-tarjeta-resumen etiqueta="Total clientes" [valor]="totalClientes" tono="azul" />
+</div>
+
+<div class="toolbar">
+  <app-buscador
+    [(texto)]="busqueda"
+    (buscado)="buscar($event)"
+    placeholder="Buscar cliente por nombre…" />
+  <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
+</div>
+
+@if (errorApi) {
+  <div class="aviso aviso-error">{{ errorApi }}</div>
+}
+
+<app-tabla
+  [columnas]="columnas"
+  [filas]="clientes()"
+  [cargando]="cargando"
+  [columnaOrden]="'nombre'"
+  trackClave="id_cliente"
+  iconoVacio="usuarios"
+  [mensajeVacio]="busqueda ? 'No se encontraron clientes con ese nombre' : 'Aún no hay clientes registrados'">
+  <ng-template celda="nombre" let-fila>
+    <strong>{{ fila.nombre }}</strong>
+  </ng-template>
+  <ng-template celda="acciones" let-fila>
+    <button
+      class="btn btn-mini btn-secundario"
+      (click)="verMovimientos(fila)"
+      title="Histórico de movimientos">
+      <app-icono nombre="recargar" /> Movimientos
+    </button>
+    <button class="btn btn-mini btn-ghost" (click)="editar(fila)">
+      <app-icono nombre="editar" /> Editar
+    </button>
+    <button
+      class="btn btn-mini btn-peligro"
+      (click)="eliminar(fila)"
+      title="Eliminar cliente"
+      aria-label="Eliminar cliente">
+      <app-icono nombre="eliminar" />
+    </button>
+  </ng-template>
+</app-tabla>
+
+<app-modal
+  [visible]="modalVisible"
+  [titulo]="editandoId === null ? 'Nuevo cliente' : 'Editar cliente'"
+  (cerrar)="cerrarModal()">
+  @if (errorFormulario) {
+    <div class="aviso aviso-error">{{ errorFormulario }}</div>
+  }
+  <div class="campo">
+    <label>Nombre <span class="req">*</span></label>
+    <input type="text" [(ngModel)]="formulario.nombre" placeholder="Nombre del cliente" />
+  </div>
+  <div class="campo">
+    <label>Teléfono</label>
+    <input type="tel" [(ngModel)]="formulario.telefono" placeholder="Opcional" />
+  </div>
+
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
+    <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
+      {{ guardando ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+</app-modal>
+
+<app-confirm-dialog
+  [visible]="!!pendiente"
+  titulo="Eliminar cliente"
+  [mensaje]="'¿Seguro que deseas eliminar a ' + (pendiente?.nombre ?? '') + '? Esta acción no se puede deshacer.'"
+  textoConfirmar="Eliminar"
+  (confirmar)="confirmarEliminacion()"
+  (cancelar)="pendiente = null">
+</app-confirm-dialog>

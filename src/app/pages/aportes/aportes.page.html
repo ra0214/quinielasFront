@@ -1,0 +1,186 @@
+<app-encabezado-pagina
+  titulo="Aportes"
+  descripcion="Monitoreo por quiniela, gestión de aportes y acceso desde el catálogo">
+  <button class="btn btn-primario" (click)="nuevo()"><app-icono nombre="agregar" /> Nuevo aporte</button>
+</app-encabezado-pagina>
+
+<!-- Vistas -->
+<app-chips-filtro [opciones]="vistas" [activo]="vista" (cambio)="cambiarVista($event)" />
+
+@if (errorApi) {
+  <div class="aviso aviso-error">{{ errorApi }}</div>
+}
+
+<!-- ===== Vista: por quiniela ===== -->
+@if (vista === 'quiniela') {
+  <div class="seccion">
+    <h3>Quiniela a consultar</h3>
+    <div class="campo selector">
+      <label>Quiniela <span class="req">*</span></label>
+      <select [(ngModel)]="idQuinielaSel" (change)="cargarAportesQuiniela()">
+        <option [ngValue]="null" disabled>— Selecciona una quiniela —</option>
+        @for (q of quinielas(); track q.id_quiniela) {
+          <option [ngValue]="q.id_quiniela">
+            {{ q.nombre_variante }} · #{{ q.id_quiniela }} · Edición {{ q.id_edicion }}
+          </option>
+        }
+      </select>
+      <div class="ayuda">También puedes llegar desde el catálogo de quinielas.</div>
+    </div>
+  </div>
+
+  @if (idQuinielaSel) {
+    <div class="seccion">
+      <h3>
+        Resumen
+        @if (quinielaSel; as q) {
+          <app-badge [valor]="q.estado" />
+        }
+      </h3>
+      <div class="resumen">
+        <app-tarjeta-resumen etiqueta="Total recaudado" [valor]="moneda(totalRecaudado)" tono="verde" />
+        <app-tarjeta-resumen etiqueta="Meta" [valor]="moneda(meta)" tono="azul" />
+        <app-tarjeta-resumen etiqueta="Faltante" [valor]="moneda(faltante)" [tono]="faltante > 0 ? 'rojo' : 'verde'" />
+        <app-tarjeta-resumen etiqueta="Avance" [valor]="porcentaje(avance)" />
+      </div>
+      <div class="barra" title="Avance de recaudación sobre la meta">
+        <div class="barra-relleno" [class.llena]="avance >= 100" [style.width.%]="avanceBarra"></div>
+      </div>
+    </div>
+
+    <app-tabla
+      [columnas]="columnasQuiniela"
+      [filas]="aportesQuiniela()"
+      [cargando]="cargandoQuiniela"
+      columnaOrden="monto_total_acumulado"
+      [ascendente]="false"
+      trackClave="id_aporte"
+      iconoVacio="grafica"
+      mensajeVacio="Esta quiniela aún no tiene aportes registrados">
+      <ng-template celda="nombre_cliente" let-fila>
+        <strong>{{ fila.nombre_cliente }}</strong>
+        <app-badge [valor]="'#' + fila.id_cliente" variante="gris" />
+      </ng-template>
+      <ng-template celda="monto_total_acumulado" let-fila>
+        {{ moneda(fila.monto_total_acumulado) }}
+      </ng-template>
+      <ng-template celda="porcentaje_participacion" let-fila>
+        {{ porcentaje(fila.porcentaje_participacion) }}
+      </ng-template>
+      <ng-template celda="acciones" let-fila>
+        <button class="btn btn-mini btn-peligro" (click)="eliminar(fila)">
+          <app-icono nombre="eliminar" /> Eliminar
+        </button>
+      </ng-template>
+    </app-tabla>
+  } @else {
+    <div class="aviso aviso-info">
+      <app-icono nombre="documento" /> Selecciona una quiniela para ver el detalle de aportes.
+    </div>
+  }
+} @else {
+  <!-- ===== Vista: por cliente ===== -->
+  <div class="seccion">
+    <h3>Cliente a consultar</h3>
+    <div class="campo selector">
+      <label>Cliente <span class="req">*</span></label>
+      <select [(ngModel)]="idClienteSel" (change)="cargarAportesCliente()">
+        <option [ngValue]="null" disabled>— Selecciona un cliente —</option>
+        @for (c of clientes(); track c.id_cliente) {
+          <option [ngValue]="c.id_cliente">{{ c.nombre }} · #{{ c.id_cliente }}</option>
+        }
+      </select>
+      <div class="ayuda">Muestra todos los aportes acumulados del cliente.</div>
+    </div>
+  </div>
+
+  @if (idClienteSel) {
+    <app-tabla
+      [columnas]="columnasCliente"
+      [filas]="aportesCliente()"
+      [cargando]="cargandoCliente"
+      columnaOrden="monto_total_acumulado"
+      [ascendente]="false"
+      trackClave="id_aporte"
+      iconoVacio="usuario"
+      mensajeVacio="Este cliente aún no tiene aportes registrados">
+      <ng-template celda="id_quiniela" let-fila>
+        <app-badge [valor]="'Quiniela #' + fila.id_quiniela" variante="info" />
+      </ng-template>
+      <ng-template celda="monto_total_acumulado" let-fila>
+        {{ moneda(fila.monto_total_acumulado) }}
+      </ng-template>
+      <ng-template celda="porcentaje_participacion" let-fila>
+        {{ porcentaje(fila.porcentaje_participacion) }}
+      </ng-template>
+      <ng-template celda="acciones" let-fila>
+        <button class="btn btn-mini btn-peligro" (click)="eliminar(fila)">
+          <app-icono nombre="eliminar" /> Eliminar
+        </button>
+      </ng-template>
+    </app-tabla>
+  } @else {
+    <div class="aviso aviso-info">
+      <app-icono nombre="usuario" /> Selecciona un cliente para ver sus aportes.
+    </div>
+  }
+}
+
+<!-- Modal crear aporte -->
+<app-modal [visible]="modalVisible" titulo="Nuevo aporte" (cerrar)="cerrarModal()">
+  @if (errorFormulario) {
+    <div class="aviso aviso-error">{{ errorFormulario }}</div>
+  }
+  <div class="aviso aviso-info">
+    Si ya existe un aporte del cliente en esa quiniela, el monto se sumará al acumulado.
+  </div>
+  <div class="campo">
+    <label>Cliente <span class="req">*</span></label>
+    <select [(ngModel)]="form.id_cliente">
+      <option [ngValue]="null" disabled>— Selecciona un cliente —</option>
+      @for (c of clientes(); track c.id_cliente) {
+        <option [ngValue]="c.id_cliente">{{ c.nombre }} · #{{ c.id_cliente }}</option>
+      }
+    </select>
+  </div>
+  <div class="campo">
+    <label>Quiniela <span class="req">*</span></label>
+    <select [(ngModel)]="form.id_quiniela" (change)="onQuinielaFormChange()">
+      <option [ngValue]="null" disabled>— Selecciona una quiniela —</option>
+      @for (q of quinielas(); track q.id_quiniela) {
+        <option [ngValue]="q.id_quiniela">
+          {{ q.nombre_variante }} · #{{ q.id_quiniela }} · Edición {{ q.id_edicion }}
+        </option>
+      }
+    </select>
+  </div>
+  <div class="formulario-grid">
+    <div class="campo">
+      <label>Monto a aportar <span class="req">*</span></label>
+      <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.monto" />
+      <div class="ayuda">Se suma al acumulado si ya existe un aporte.</div>
+    </div>
+    <div class="campo">
+      <label>Meta de la quiniela (monto_meta) <span class="req">*</span></label>
+      <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.monto_meta" />
+      <div class="ayuda">Se llena con la meta de la quiniela seleccionada.</div>
+    </div>
+  </div>
+
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
+    <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
+      {{ guardando ? 'Guardando…' : 'Registrar aporte' }}
+    </button>
+  </div>
+</app-modal>
+
+<!-- Confirmación eliminar -->
+<app-confirm-dialog
+  [visible]="!!pendiente"
+  titulo="Eliminar aporte"
+  [mensaje]="mensajeEliminacion()"
+  textoConfirmar="Eliminar"
+  (confirmar)="confirmarEliminacion()"
+  (cancelar)="pendiente = null">
+</app-confirm-dialog>

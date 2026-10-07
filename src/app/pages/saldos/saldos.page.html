@@ -1,0 +1,88 @@
+<app-encabezado-pagina
+  titulo="Saldos"
+  descripcion="Dashboard de saldos con filtros y edición rápida">
+  <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
+</app-encabezado-pagina>
+
+<!-- Filtros por chip: el filtro principal es el del servidor -->
+<app-chips-filtro [opciones]="tiposFiltro" [activo]="filtro" (cambio)="aplicarFiltro($event)" />
+
+<div class="resumen">
+  <app-tarjeta-resumen etiqueta="Total deuda" [valor]="moneda(totalDeuda)" tono="rojo" />
+  <app-tarjeta-resumen etiqueta="Total a favor" [valor]="moneda(totalFavor)" tono="verde" />
+  <app-tarjeta-resumen etiqueta="Clientes con deuda" [valor]="conDeudaTexto" tono="azul" />
+  <app-tarjeta-resumen etiqueta="Clientes en cero" [valor]="enCeroTexto" />
+</div>
+
+<div class="toolbar">
+  <app-buscador
+    [(texto)]="busqueda"
+    placeholder="Filtrar por nombre de cliente…" />
+  <app-badge [valor]="lista.length + ' en pantalla'" variante="gris" />
+</div>
+
+@if (errorApi) {
+  <div class="aviso aviso-error">{{ errorApi }}</div>
+}
+
+<app-tabla
+  [columnas]="columnas"
+  [filas]="lista"
+  [cargando]="cargando"
+  columnaOrden="nombre"
+  trackClave="id_cliente"
+  iconoVacio="billetera"
+  [mensajeVacio]="busqueda ? 'No hay saldos para ese nombre' : 'No hay saldos que coincidan con el filtro'">
+  <ng-template celda="nombre" let-fila>
+    <strong>{{ fila.nombre }}</strong>
+    <app-badge [valor]="'#' + fila.id_cliente" variante="gris" />
+  </ng-template>
+  <ng-template celda="saldo_favor" let-fila>
+    <span class="texto-verde">{{ moneda(fila.saldo_favor) }}</span>
+  </ng-template>
+  <ng-template celda="saldo_deuda" let-fila>
+    <span class="texto-rojo">{{ moneda(fila.saldo_deuda) }}</span>
+  </ng-template>
+  <ng-template celda="neto" let-fila>
+    <span [class.saldo-cero]="fila.neto <= 0" title="Saldo a favor menos saldo deuda (negativo se muestra en 0)">
+      {{ netoTexto(fila) }}
+    </span>
+  </ng-template>
+  <ng-template celda="acciones" let-fila>
+    <button class="btn btn-mini btn-ghost" (click)="editar(fila)" title="Edición rápida de saldo">
+      <app-icono nombre="editar" /> Editar saldo
+    </button>
+  </ng-template>
+</app-tabla>
+
+<!-- Modal editar saldo -->
+<app-modal
+  [visible]="modalVisible"
+  [titulo]="'Editar saldo · ' + nombreEditando()"
+  (cerrar)="cerrarModal()">
+  @if (errorFormulario) {
+    <div class="aviso aviso-error">{{ errorFormulario }}</div>
+  }
+  <div class="formulario-grid">
+    <div class="campo">
+      <label>Saldo a favor <span class="req">*</span></label>
+      <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.saldo_favor" />
+      <div class="ayuda">Dinero que el cliente tiene a su favor.</div>
+    </div>
+    <div class="campo">
+      <label>Saldo deuda <span class="req">*</span></label>
+      <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.saldo_deuda" />
+      <div class="ayuda">Dinero que el cliente debe.</div>
+    </div>
+  </div>
+  <div class="aviso aviso-info">
+    Si un campo se deja vacío se guardará como $0.00. Los valores no pueden ser negativos.
+  </div>
+
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
+    <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
+      {{ guardando ? 'Guardando…' : 'Guardar saldo' }}
+    </button>
+  </div>
+</app-modal>

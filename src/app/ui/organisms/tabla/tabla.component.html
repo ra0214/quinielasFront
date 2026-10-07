@@ -1,0 +1,52 @@
+<div class="tabla-wrap">
+  <table class="tabla">
+    <thead>
+      <tr>
+        @for (c of columnas; track c.clave) {
+          <th
+            [class.ordenable]="esOrdenable(c)"
+            [class.num]="c.clase === 'num'"
+            [class.acciones]="c.clase === 'acciones'"
+            (click)="alternarOrden(c)">
+            {{ c.etiqueta }}
+            @if (esOrdenable(c)) {
+              <span class="flecha">{{ flecha(c) }}</span>
+            }
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @if (cargando) {
+        <tr>
+          <td [attr.colspan]="columnas.length" class="vacio">
+            <span class="icono"><app-icono nombre="reloj" tamano="30px" /></span>
+            Cargando…
+          </td>
+        </tr>
+      } @else if (filasOrdenadas.length === 0) {
+        <tr>
+          <td [attr.colspan]="columnas.length" class="vacio">
+            <span class="icono"><app-icono [nombre]="iconoVacio" tamano="34px" /></span>
+            {{ mensajeVacio }}
+          </td>
+        </tr>
+      } @else {
+        @for (fila of filasOrdenadas; track claveFila(fila, $index)) {
+          <tr>
+            @for (c of columnas; track c.clave) {
+              <td [class.num]="c.clase === 'num'" [class.acciones]="c.clase === 'acciones'">
+                @if (plantillaDe(c.clave); as plantilla) {
+                  <ng-container
+                    *ngTemplateOutlet="plantilla; context: { $implicit: fila, fila: fila }"></ng-container>
+                } @else {
+                  {{ texto(c, fila) }}
+                }
+              </td>
+            }
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

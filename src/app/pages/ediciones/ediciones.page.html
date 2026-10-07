@@ -1,0 +1,98 @@
+<app-encabezado-pagina
+  titulo="Ediciones"
+  descripcion="Registro y consulta de ediciones de quinielas">
+  <button class="btn btn-primario" (click)="nuevo()"><app-icono nombre="agregar" /> Nueva edición</button>
+</app-encabezado-pagina>
+
+<div class="resumen">
+  <app-tarjeta-resumen etiqueta="Total ediciones" [valor]="totalEdiciones" tono="azul" />
+  <app-tarjeta-resumen etiqueta="Media semana" [valor]="contar('MEDIA_SEMANA')" />
+  <app-tarjeta-resumen etiqueta="Fin de semana" [valor]="contar('FIN_DE_SEMANA')" />
+</div>
+
+<div class="toolbar">
+  <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
+</div>
+
+@if (errorApi) {
+  <div class="aviso aviso-error">{{ errorApi }}</div>
+}
+
+<app-tabla
+  [columnas]="columnas"
+  [filas]="ediciones()"
+  [cargando]="cargando"
+  columnaOrden="id_edicion"
+  trackClave="id_edicion"
+  iconoVacio="calendario"
+  mensajeVacio="Aún no hay ediciones registradas">
+  <ng-template celda="id_edicion" let-fila>
+    <strong>#{{ fila.id_edicion }}</strong>
+  </ng-template>
+  <ng-template celda="tipo_edicion" let-fila>
+    {{ etiquetaTipo(fila.tipo_edicion) }}
+  </ng-template>
+  <ng-template celda="nombre_edicion" let-fila>
+    <strong>{{ fila.nombre_edicion }}</strong>
+  </ng-template>
+  <ng-template celda="acciones" let-fila>
+    <button class="btn btn-mini btn-ghost" (click)="editar(fila)">
+      <app-icono nombre="editar" /> Editar
+    </button>
+    <button
+      class="btn btn-mini btn-peligro"
+      (click)="eliminar(fila)"
+      title="Eliminar edición"
+      aria-label="Eliminar edición">
+      <app-icono nombre="eliminar" />
+    </button>
+  </ng-template>
+</app-tabla>
+
+<app-modal
+  [visible]="modalVisible"
+  [titulo]="editandoId === null ? 'Nueva edición' : 'Editar edición'"
+  (cerrar)="cerrarModal()">
+  @if (errorFormulario) {
+    <div class="aviso aviso-error">{{ errorFormulario }}</div>
+  }
+  <div class="formulario-grid">
+    <div class="campo">
+      <label>Tipo de edición <span class="req">*</span></label>
+      <select [(ngModel)]="formulario.tipo_edicion">
+        <option value="MEDIA_SEMANA">Media semana</option>
+        <option value="FIN_DE_SEMANA">Fin de semana</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label>Nombre <span class="req">*</span></label>
+      <input
+        type="text"
+        [(ngModel)]="formulario.nombre_edicion"
+        placeholder="Ej. Quiniela 2026 – Semana 40" />
+    </div>
+    @if (editandoId !== null) {
+      <div class="campo">
+        <label>Fecha de inicio</label>
+        <input type="text" [value]="fechaInicioEditando ? fecha(fechaInicioEditando) : ''" disabled />
+        <div class="ayuda">La fecha de inicio la asigna el sistema.</div>
+      </div>
+    }
+  </div>
+
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
+    <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
+      {{ guardando ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+</app-modal>
+
+<app-confirm-dialog
+  [visible]="!!pendiente"
+  titulo="Eliminar edición"
+  [mensaje]="'¿Seguro que deseas eliminar la edición ' + (pendiente?.nombre_edicion ?? '') + '? Esta acción no se puede deshacer.'"
+  textoConfirmar="Eliminar"
+  (confirmar)="confirmarEliminacion()"
+  (cancelar)="pendiente = null">
+</app-confirm-dialog>

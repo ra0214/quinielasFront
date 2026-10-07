@@ -1,0 +1,182 @@
+<app-encabezado-pagina
+  titulo="Premios"
+  descripcion="Registro con 7% de retención, reparto proporcional e informe por cliente">
+  <button class="btn btn-primario" (click)="nuevo()"><app-icono nombre="agregar" /> Registrar premio</button>
+</app-encabezado-pagina>
+
+<div class="resumen">
+  <app-tarjeta-resumen etiqueta="Total bruto" [valor]="totalBruto" tono="azul" />
+  <app-tarjeta-resumen etiqueta="Total neto (7% retenido)" [valor]="totalNeto" tono="verde" />
+  <app-tarjeta-resumen etiqueta="Retención ISLR" [valor]="totalRetenido" tono="rojo" />
+  <app-tarjeta-resumen etiqueta="Premios registrados" [valor]="totalPremios" />
+</div>
+
+<div class="toolbar">
+  <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
+</div>
+
+@if (errorApi) {
+  <div class="aviso aviso-error">{{ errorApi }}</div>
+}
+
+<app-tabla
+  [columnas]="columnas"
+  [filas]="lista"
+  [cargando]="cargando"
+  [columnaOrden]="'fecha_registro'"
+  [ascendente]="false"
+  trackClave="id_premio"
+  iconoVacio="copa"
+  mensajeVacio="Aún no hay premios registrados">
+  <ng-template celda="nombre_quiniela" let-fila>
+    <strong>{{ fila.nombre_quiniela }}</strong>
+    <app-badge [valor]="'#' + fila.id_quiniela" variante="gris" />
+  </ng-template>
+  <ng-template celda="monto_neto" let-fila>
+    <span class="texto-verde">{{ moneda(fila.monto_neto) }}</span>
+  </ng-template>
+  <ng-template celda="acciones" let-fila>
+    <button
+      class="btn btn-mini btn-secundario"
+      (click)="verReparto(fila)"
+      title="Ver reparto">
+      <app-icono nombre="ver" /> Ver reparto
+    </button>
+    <button
+      class="btn btn-mini btn-peligro"
+      (click)="eliminar(fila)"
+      title="Eliminar premio"
+      aria-label="Eliminar premio">
+      <app-icono nombre="eliminar" />
+    </button>
+  </ng-template>
+</app-tabla>
+
+<!-- Modal registrar premio -->
+<app-modal [visible]="modalVisible" titulo="Registrar premio" (cerrar)="cerrarModal()">
+  @if (errorFormulario) {
+    <div class="aviso aviso-error">{{ errorFormulario }}</div>
+  }
+  <div class="aviso aviso-info">
+    Se descontará 7% de retención (ISLR). Si ya existe un premio para esta quiniela se
+    sobreescribe.
+  </div>
+
+  <div class="campo">
+    <label>Quiniela <span class="req">*</span></label>
+    <select [(ngModel)]="formulario.id_quiniela">
+      <option [ngValue]="0" disabled>— Selecciona una quiniela —</option>
+      @for (q of quinielas(); track q.id_quiniela) {
+        <option [ngValue]="q.id_quiniela">{{ q.nombre_variante }} (#{{ q.id_quiniela }})</option>
+      }
+    </select>
+  </div>
+  <div class="campo">
+    <label>Monto bruto <span class="req">*</span></label>
+    <input
+      type="number"
+      step="0.01"
+      min="0.01"
+      [(ngModel)]="formulario.monto_bruto"
+      placeholder="0.00" />
+    <div class="ayuda">Debe ser mayor a 0. El monto neto (93%) se calcula automáticamente.</div>
+  </div>
+
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
+    <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
+      {{ guardando ? 'Guardando…' : 'Registrar' }}
+    </button>
+  </div>
+</app-modal>
+
+<!-- Modal reparto del premio -->
+<app-modal
+  [visible]="repartoModalVisible"
+  [titulo]="'Reparto del premio — ' + nombreQuiniela(repartoPremio?.id_quiniela)"
+  [grande]="true"
+  (cerrar)="cerrarReparto()">
+  @if (repartoCargando) {
+    <div class="aviso aviso-info"><app-icono nombre="reloj" /> Cargando reparto…</div>
+  } @else if (reparto) {
+    <div class="resumen">
+      <app-tarjeta-resumen etiqueta="Bruto" [valor]="moneda(reparto.monto_bruto)" />
+      <app-tarjeta-resumen
+        etiqueta="Retención (7%)"
+        [valor]="moneda(reparto.monto_bruto - reparto.monto_neto)"
+        tono="rojo" />
+      <app-tarjeta-resumen etiqueta="Neto a repartir" [valor]="moneda(reparto.monto_neto)" tono="verde" />
+      <app-tarjeta-resumen etiqueta="Total recaudado" [valor]="moneda(reparto.total_recaudado)" />
+      <app-tarjeta-resumen etiqueta="Meta" [valor]="moneda(reparto.monto_meta)" tono="azul" />
+      <app-tarjeta-resumen
+        etiqueta="% meta alcanzado"
+        [valor]="porcentaje(reparto.porcentaje_meta_alcanzado)"
+        tono="azul" />
+      <app-tarjeta-resumen etiqueta="Participantes" [valor]="entero(reparto.total_participantes)" />
+      <app-tarjeta-resumen etiqueta="Fecha de reparto" [valor]="fecha(reparto.fecha_reparto)" />
+    </div>
+
+    <app-tabla
+      [columnas]="columnasParticipantes"
+      [filas]="reparto.participantes"
+      trackClave="id_cliente"
+      iconoVacio="usuario"
+      mensajeVacio="Este reparto aún no tiene participantes">
+      <ng-template celda="nombre_cliente" let-fila>
+        <strong>{{ fila.nombre_cliente }}</strong>
+      </ng-template>
+      <ng-template celda="monto_retencion" let-fila>
+        <span class="texto-rojo">{{ moneda(fila.monto_retencion) }}</span>
+      </ng-template>
+      <ng-template celda="monto_neto_asignado" let-fila>
+        <span class="texto-verde">{{ moneda(fila.monto_neto_asignado) }}</span>
+      </ng-template>
+    </app-tabla>
+  } @else {
+    @if (repartoError) {
+      <div class="aviso aviso-error">{{ repartoError }}</div>
+    }
+    @if (repartoAviso) {
+      <div class="aviso aviso-info">{{ repartoAviso }}</div>
+      @if (repartoGenerable) {
+        <button class="btn btn-primario" (click)="pedirGenerar()">
+          <app-icono nombre="ajustes" /> Generar reparto
+        </button>
+      }
+    }
+  }
+
+  <div pie>
+    @if (reparto) {
+      <span class="pie-nota">
+        El monto neto asignado se abona al saldo del cliente (módulo Saldos).
+      </span>
+      <button class="btn btn-ghost" (click)="verSaldos()">Ver saldos</button>
+    }
+    <button class="btn btn-secundario" (click)="cerrarReparto()">Cerrar</button>
+  </div>
+</app-modal>
+
+<!-- Confirmación generar reparto -->
+<app-confirm-dialog
+  [visible]="generarConfirmado"
+  titulo="Generar reparto"
+  mensaje="¿Generar el reparto del premio para esta quiniela? Una vez generado queda congelado y no se puede volver a calcular."
+  textoConfirmar="Generar"
+  (confirmar)="confirmarGenerar()"
+  (cancelar)="generarConfirmado = false">
+</app-confirm-dialog>
+
+<!-- Confirmación eliminar premio -->
+<app-confirm-dialog
+  [visible]="!!pendiente"
+  titulo="Eliminar premio"
+  [mensaje]="
+    '¿Seguro que deseas eliminar el premio de la quiniela ' +
+    nombreQuiniela(pendiente?.id_quiniela) +
+    '? Esta acción no se puede deshacer.'
+  "
+  textoConfirmar="Eliminar"
+  (confirmar)="confirmarEliminacion()"
+  (cancelar)="pendiente = null">
+</app-confirm-dialog>

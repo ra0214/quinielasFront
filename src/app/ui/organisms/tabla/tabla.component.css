@@ -1,0 +1,86 @@
+.tabla-wrap {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 14px rgba(15, 23, 42, 0.05);
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.tabla thead th {
+  background: #f8fafc;
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  font-weight: 700;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.tabla thead th.ordenable {
+  cursor: pointer;
+}
+
+.tabla thead th.ordenable:hover {
+  color: #2563eb;
+}
+
+.tabla thead th.num,
+.tabla thead th.acciones {
+  text-align: right;
+}
+
+.tabla .flecha {
+  font-size: 10px;
+  margin-left: 3px;
+}
+
+.tabla tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tabla tbody tr:hover {
+  background: #f8fafc;
+}
+
+.tabla td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tabla td.acciones {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tabla td.acciones .btn + .btn {
+  margin-left: 6px;
+}
+
+.vacio {
+  padding: 40px 16px;
+  text-align: center;
+  color: #64748b;
+}
+
+.vacio .icono {
+  font-size: 34px;
+  display: block;
+  margin-bottom: 8px;
+}

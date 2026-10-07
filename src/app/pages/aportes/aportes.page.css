@@ -1,0 +1,23 @@
+/* Los componentes de esta página usan estilos encapsulados y utilidades globales. */
+
+.selector {
+  max-width: 520px;
+}
+
+.barra {
+  height: 10px;
+  background: var(--borde);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.barra-relleno {
+  height: 100%;
+  background: var(--azul);
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+.barra-relleno.llena {
+  background: var(--verde);
+}

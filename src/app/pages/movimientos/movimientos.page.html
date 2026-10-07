@@ -1,0 +1,141 @@
+<app-encabezado-pagina
+  titulo="Movimientos"
+  descripcion="Histórico por cliente, creación y eliminación">
+  <button class="btn btn-primario" (click)="nuevo()"><app-icono nombre="agregar" /> Nuevo movimiento</button>
+</app-encabezado-pagina>
+
+<div class="resumen">
+  <app-tarjeta-resumen etiqueta="Movimientos mostrados" [valor]="totalMovimientos" tono="azul" />
+  <app-tarjeta-resumen etiqueta="Monto total (filtro actual)" [valor]="montoTotal" />
+</div>
+
+<div class="toolbar">
+  <div class="campo" style="margin-bottom: 0; min-width: 250px">
+    <label>Cliente</label>
+    <select [ngModel]="clienteSeleccionado" (ngModelChange)="onClienteCambio($event)">
+      <option [ngValue]="''">Todos los clientes</option>
+      @for (c of clientes(); track c.id_cliente) {
+        <option [ngValue]="c.id_cliente">{{ c.nombre }}</option>
+      }
+    </select>
+  </div>
+
+  <app-chips-filtro
+    [opciones]="chips"
+    [activo]="filtroTipo"
+    (cambio)="filtroTipo = $event" />
+
+  <button class="btn btn-secundario" (click)="cargarMovimientos()">
+    <app-icono nombre="recargar" /> Recargar
+  </button>
+</div>
+
+@if (errorApi) {
+  <div class="aviso aviso-error">{{ errorApi }}</div>
+}
+
+<app-tabla
+  [columnas]="columnas"
+  [filas]="lista"
+  [cargando]="cargando"
+  [columnaOrden]="'fecha'"
+  [ascendente]="false"
+  trackClave="id_movimiento"
+  iconoVacio="billete"
+  [mensajeVacio]="mensajeVacio">
+  <ng-template celda="nombre_cliente" let-fila>
+    <strong>{{ fila.nombre_cliente }}</strong>
+  </ng-template>
+  <ng-template celda="tipo" let-fila>
+    <app-badge [valor]="fila.tipo" />
+  </ng-template>
+  <ng-template celda="acciones" let-fila>
+    <button
+      class="btn btn-mini btn-peligro"
+      (click)="eliminar(fila)"
+      title="Eliminar movimiento">
+      <app-icono nombre="eliminar" />
+    </button>
+  </ng-template>
+</app-tabla>
+
+<app-modal [visible]="modalVisible" titulo="Nuevo movimiento" (cerrar)="cerrarModal()">
+  @if (errorFormulario) {
+    <div class="aviso aviso-error">{{ errorFormulario }}</div>
+  }
+  <div class="aviso aviso-info">
+    Los movimientos no modifican el saldo automáticamente; el saldo se gestiona en el módulo
+    Saldos.
+  </div>
+
+  <div class="formulario-grid">
+    <div class="campo">
+      <label>Cliente <span class="req">*</span></label>
+      <select [(ngModel)]="formulario.id_cliente">
+        <option [ngValue]="0" disabled>— Selecciona un cliente —</option>
+        @for (c of clientes(); track c.id_cliente) {
+          <option [ngValue]="c.id_cliente">{{ c.nombre }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label>Quiniela (opcional)</label>
+      <select [(ngModel)]="formulario.id_quiniela">
+        <option [ngValue]="null">— Sin quiniela —</option>
+        @for (q of quinielas(); track q.id_quiniela) {
+          <option [ngValue]="q.id_quiniela">{{ q.nombre_variante }} (#{{ q.id_quiniela }})</option>
+        }
+      </select>
+      <div class="ayuda">Déjala vacía si el movimiento no está ligado a una quiniela.</div>
+    </div>
+    <div class="campo">
+      <label>Tipo <span class="req">*</span></label>
+      <select [(ngModel)]="formulario.tipo">
+        <option value="" disabled>— Selecciona un tipo —</option>
+        @for (t of tipos; track t) {
+          <option [value]="t">{{ t }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label>Monto <span class="req">*</span></label>
+      <input
+        type="number"
+        step="0.01"
+        min="0.01"
+        [(ngModel)]="formulario.monto"
+        placeholder="0.00" />
+      <div class="ayuda">Debe ser mayor a 0.</div>
+    </div>
+  </div>
+
+  <div class="campo">
+    <label>Descripción <span class="req">*</span></label>
+    <textarea
+      rows="2"
+      [(ngModel)]="formulario.descripcion"
+      placeholder="Motivo o detalle del movimiento…"></textarea>
+  </div>
+
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
+    <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
+      {{ guardando ? 'Guardando…' : 'Guardar' }}
+    </button>
+  </div>
+</app-modal>
+
+<app-confirm-dialog
+  [visible]="!!pendiente"
+  titulo="Eliminar movimiento"
+  [mensaje]="
+    '¿Seguro que deseas eliminar el movimiento #' +
+    (pendiente?.id_movimiento ?? '') +
+    ' (' +
+    (pendiente?.tipo ?? '') +
+    ')? Esta acción no se puede deshacer.'
+  "
+  textoConfirmar="Eliminar"
+  (confirmar)="confirmarEliminacion()"
+  (cancelar)="pendiente = null">
+</app-confirm-dialog>
