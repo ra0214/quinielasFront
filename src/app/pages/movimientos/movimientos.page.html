@@ -64,8 +64,10 @@
     <div class="aviso aviso-error">{{ errorFormulario }}</div>
   }
   <div class="aviso aviso-info">
-    Los movimientos no modifican el saldo automáticamente; el saldo se gestiona en el módulo
-    Saldos.
+    El saldo del cliente se ajusta automáticamente según el tipo de movimiento:
+    FIADO aumenta la deuda, PAGO_EFECTIVO la paga (el sobrante va a favor),
+    PAGO_SALDO y RETIRO consumen el saldo a favor, y PREMIO_ABONO y DEVOLUCION
+    lo suman. El saldo se compensa y nunca deja favor y deuda a la vez.
   </div>
 
   <div class="formulario-grid">

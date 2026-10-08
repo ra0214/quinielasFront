@@ -1,6 +1,6 @@
 <app-encabezado-pagina
   titulo="Saldos"
-  descripcion="Dashboard de saldos con filtros y edición rápida">
+  descripcion="Saldos por cliente con edición rápida y compensación automática">
   <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
 </app-encabezado-pagina>
 
@@ -77,6 +77,8 @@
   </div>
   <div class="aviso aviso-info">
     Si un campo se deja vacío se guardará como $0.00. Los valores no pueden ser negativos.
+    Para este cliente se hará la compensación: por ejemplo, 100 a favor y 20 de deuda
+    quedan como 80 a favor y 0 de deuda.
   </div>
 
   <div pie>
