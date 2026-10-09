@@ -27,3 +27,39 @@
     max-width: none;
   }
 }
+
+.tarjeta-meta {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.meta-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  padding: 3px 0;
+}
+
+.meta-etiqueta {
+  color: var(--texto-suave, #64748b);
+}
+
+.meta-valor {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.meta-falta {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 6px;
+  padding-top: 8px;
+}
+
+.meta-falta .meta-valor {
+  color: var(--verde, #16a34a);
+}

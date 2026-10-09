@@ -154,6 +154,23 @@
       }
     </select>
   </div>
+
+  @if (form.id_quiniela) {
+    <div class="tarjeta-meta">
+      <div class="meta-fila">
+        <span class="meta-etiqueta">Meta de la quiniela</span>
+        <span class="meta-valor">{{ moneda(metaQuinielaForm) }}</span>
+      </div>
+      <div class="meta-fila">
+        <span class="meta-etiqueta">Recaudado</span>
+        <span class="meta-valor">{{ moneda(recaudadoQuinielaForm) }}</span>
+      </div>
+      <div class="meta-fila meta-falta">
+        <span class="meta-etiqueta">Falta por completar</span>
+        <span class="meta-valor">{{ moneda(maxMonto) }}</span>
+      </div>
+    </div>
+  }
   <div class="formulario-grid">
     <div class="campo">
       <label>Monto a aportar <span class="req">*</span></label>
@@ -166,9 +183,10 @@
         [(ngModel)]="form.monto" />
       @if (form.id_quiniela) {
         <div class="ayuda">
-          Máximo permitido: {{ moneda(maxMonto) }}
-          @if (!hayMontoDisponible) {
-            · la meta ya se completó
+          @if (hayMontoDisponible) {
+            Máximo: {{ moneda(maxMonto) }}
+          } @else {
+            La meta ya se completó, no se puede aportar más.
           }
         </div>
       }

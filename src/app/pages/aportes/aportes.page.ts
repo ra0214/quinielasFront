@@ -255,6 +255,11 @@ export class AportesPage implements OnInit, OnDestroy {
     });
   }
 
+  get metaQuinielaForm(): number {
+    const q = this.quinielas().find((x) => x.id_quiniela === this.form.id_quiniela);
+    return q?.monto_meta ?? 0;
+  }
+
   get maxMonto(): number {
     const q = this.quinielas().find((x) => x.id_quiniela === this.form.id_quiniela);
     if (!q) return 0;
