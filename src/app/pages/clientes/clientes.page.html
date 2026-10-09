@@ -83,3 +83,83 @@
   (confirmar)="confirmarEliminacion()"
   (cancelar)="pendiente = null">
 </app-confirm-dialog>
+
+<!-- Modal: registros asociados que impiden el borrado -->
+<app-modal
+  [visible]="registrosVisible"
+  [grande]="true"
+  [titulo]="'Registros de · ' + (registrosCliente?.nombre ?? '')"
+  (cerrar)="cerrarRegistros()">
+  @if (erroresRegistros.length) {
+    <div class="aviso aviso-error">{{ erroresRegistros.join(' ') }}</div>
+  }
+
+  @if (registrosCargando) {
+    <p class="texto-ayuda">Cargando registros del cliente…</p>
+  } @else {
+    <!-- Saldo -->
+    <section class="bloque-registros">
+      <h4>Saldo</h4>
+      @if (registrosSaldo) {
+        <div class="saldo-resumen">
+          <span class="texto-verde">Favor: {{ moneda(registrosSaldo.saldo_favor) }}</span>
+          <span class="texto-rojo">Deuda: {{ moneda(registrosSaldo.saldo_deuda) }}</span>
+        </div>
+      } @else {
+        <p class="texto-ayuda">Sin saldo registrado.</p>
+      }
+    </section>
+
+    <!-- Movimientos -->
+    <section class="bloque-registros">
+      <h4>Movimientos ({{ registrosMovimientos.length }})</h4>
+      @if (registrosMovimientos.length === 0) {
+        <p class="texto-ayuda">Sin movimientos.</p>
+      } @else {
+        <div class="lista-registros">
+          @for (m of registrosMovimientos; track m.id_movimiento) {
+            <div class="fila-registro">
+              <div class="fila-registro-principal">
+                <strong>{{ m.tipo }}</strong>
+                <span>{{ moneda(m.monto) }}</span>
+              </div>
+              <div class="fila-registro-secundaria">
+                <span>{{ fecha(m.fecha) }}</span>
+                <span>{{ m.descripcion }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      <button class="btn btn-mini btn-secundario" (click)="verMovimientosCliente()">
+        <app-icono nombre="recargar" /> Ver movimientos
+      </button>
+    </section>
+
+    <!-- Aportes -->
+    <section class="bloque-registros">
+      <h4>Aportes ({{ registrosAportes.length }})</h4>
+      @if (registrosAportes.length === 0) {
+        <p class="texto-ayuda">Sin aportes.</p>
+      } @else {
+        <div class="lista-registros">
+          @for (a of registrosAportes; track a.id_aporte) {
+            <div class="fila-registro">
+              <div class="fila-registro-principal">
+                <strong>Aporte #{{ a.id_aporte }} · Quiniela #{{ a.id_quiniela }}</strong>
+                <span>{{ moneda(a.monto_total_acumulado) }}</span>
+              </div>
+              <div class="fila-registro-secundaria">
+                <span>{{ (a.porcentaje_participacion * 100).toFixed(2) }}%</span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarRegistros()">Cerrar</button>
+  </div>
+</app-modal>

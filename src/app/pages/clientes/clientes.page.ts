@@ -2,7 +2,10 @@ import { IconoComponent } from '../../ui/atoms/icono/icono.component';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Cliente, ClienteRequest } from '../../core/domain/models';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { Aporte, Cliente, ClienteRequest, Movimiento, Saldo } from '../../core/domain/models';
+import { formatoFecha, formatoMoneda } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmDialogComponent } from '../../ui/molecules/confirm-dialog/confirm-dialog.component';
 import { BuscadorComponent } from '../../ui/molecules/buscador/buscador.component';
@@ -12,6 +15,9 @@ import { TablaComponent, ColumnaTabla } from '../../ui/organisms/tabla/tabla.com
 import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
 import { ClientesService } from './data-access/clientes.service';
+import { MovimientosService } from '../movimientos/data-access/movimientos.service';
+import { AportesService } from '../aportes/data-access/aportes.service';
+import { SaldosService } from '../saldos/data-access/saldos.service';
 
 @Component({
   selector: 'app-clientes',
@@ -32,6 +38,9 @@ import { ClientesService } from './data-access/clientes.service';
 })
 export class ClientesPage implements OnInit {
   private readonly datos = inject(ClientesService);
+  private readonly movimientosSvc = inject(MovimientosService);
+  private readonly aportesSvc = inject(AportesService);
+  private readonly saldosSvc = inject(SaldosService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
@@ -62,6 +71,15 @@ export class ClientesPage implements OnInit {
 
   // Eliminar
   pendiente: Cliente | null = null;
+
+  // Registros asociados (bloquean el borrado del cliente)
+  registrosVisible = false;
+  registrosCargando = false;
+  registrosCliente: Cliente | null = null;
+  registrosSaldo: Saldo | null = null;
+  registrosMovimientos: Movimiento[] = [];
+  registrosAportes: Aporte[] = [];
+  erroresRegistros: string[] = [];
 
   ngOnInit(): void {
     this.cargar();
@@ -155,9 +173,63 @@ export class ClientesPage implements OnInit {
       },
       error: (e) => {
         this.toast.error(e.message);
+        // Si falla por registros asociados (409), mostramos qué registros tiene.
+        if (e.status === 409) {
+          this.abrirRegistros(c);
+        }
         this.pendiente = null;
       },
     });
+  }
+
+  private abrirRegistros(c: Cliente): void {
+    this.registrosCliente = c;
+    this.registrosSaldo = null;
+    this.registrosMovimientos = [];
+    this.registrosAportes = [];
+    this.erroresRegistros = [];
+    this.registrosVisible = true;
+    this.registrosCargando = true;
+
+    const saldo$ = this.saldosSvc
+      .porCliente(c.id_cliente)
+      .pipe(catchError(() => of(null)));
+    const movimientos$ = this.movimientosSvc.porCliente(c.id_cliente).pipe(catchError(() => of([])));
+    const aportes$ = this.aportesSvc.porCliente(c.id_cliente).pipe(catchError(() => of([])));
+
+    forkJoin({ saldo: saldo$, movimientos: movimientos$, aportes: aportes$ }).subscribe({
+      next: ({ saldo, movimientos, aportes }) => {
+        this.registrosSaldo = saldo;
+        this.registrosMovimientos = movimientos;
+        this.registrosAportes = aportes;
+        this.registrosCargando = false;
+      },
+      error: (e) => {
+        this.erroresRegistros.push(e.message);
+        this.registrosCargando = false;
+      },
+    });
+  }
+
+  cerrarRegistros(): void {
+    this.registrosVisible = false;
+    this.registrosCliente = null;
+  }
+
+  // ===== Atajos de ver registros =====
+  moneda(v: number | null | undefined): string {
+    return formatoMoneda(v);
+  }
+
+  fecha(v: string): string {
+    return formatoFecha(v);
+  }
+
+  verMovimientosCliente(): void {
+    const c = this.registrosCliente;
+    if (!c) return;
+    this.cerrarRegistros();
+    this.router.navigate(['/movimientos'], { queryParams: { cliente: c.id_cliente } });
   }
 
   verMovimientos(c: Cliente): void {

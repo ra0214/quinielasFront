@@ -1,1 +1,63 @@
 /* Los componentes de esta página usan estilos encapsulados y utilidades globales. */
+
+.bloque-registros {
+  margin-bottom: 20px;
+}
+
+.bloque-registros h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.texto-ayuda {
+  color: #64748b;
+  font-size: 13px;
+  margin: 0;
+}
+
+.saldo-resumen {
+  display: flex;
+  gap: 18px;
+  font-size: 14px;
+}
+
+.lista-registros {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.fila-registro {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.fila-registro-principal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.fila-registro-secundaria {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.texto-verde {
+  color: #16a34a;
+}
+
+.texto-rojo {
+  color: #dc2626;
+}
