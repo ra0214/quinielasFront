@@ -24,7 +24,6 @@ interface FormAporte {
   id_cliente: number | null;
   id_quiniela: number | null;
   monto: number | null;
-  monto_meta: number | null;
 }
 
 @Component({
@@ -86,9 +85,10 @@ export class AportesPage implements OnInit, OnDestroy {
 
   // Modal crear aporte
   modalVisible = false;
-  form: FormAporte = { id_cliente: null, id_quiniela: null, monto: null, monto_meta: null };
+  form: FormAporte = { id_cliente: null, id_quiniela: null, monto: null };
   guardando = false;
   errorFormulario = '';
+  recaudadoQuinielaForm = 0;
 
   // Eliminar aporte
   pendiente: Aporte | null = null;
@@ -230,8 +230,8 @@ export class AportesPage implements OnInit, OnDestroy {
       id_cliente: this.vista === 'cliente' ? this.idClienteSel : null,
       id_quiniela: this.vista === 'quiniela' ? this.idQuinielaSel : null,
       monto: null,
-      monto_meta: this.quinielaSel?.monto_meta ?? null,
     };
+    this.recaudadoQuinielaForm = this.vista === 'quiniela' && this.idQuinielaSel ? this.totalRecaudado : 0;
     this.errorFormulario = '';
     this.modalVisible = true;
   }
@@ -242,8 +242,27 @@ export class AportesPage implements OnInit, OnDestroy {
   }
 
   onQuinielaFormChange(): void {
+    const id = this.form.id_quiniela;
+    if (id == null) {
+      this.recaudadoQuinielaForm = 0;
+      return;
+    }
+    this.datos.porQuiniela(id).subscribe({
+      next: (lista) => {
+        this.recaudadoQuinielaForm = lista.reduce((suma, a) => suma + a.monto_total_acumulado, 0);
+      },
+      error: () => (this.recaudadoQuinielaForm = 0),
+    });
+  }
+
+  get maxMonto(): number {
     const q = this.quinielas().find((x) => x.id_quiniela === this.form.id_quiniela);
-    if (q) this.form.monto_meta = q.monto_meta;
+    if (!q) return 0;
+    return Math.max(0, q.monto_meta - this.recaudadoQuinielaForm);
+  }
+
+  get hayMontoDisponible(): boolean {
+    return this.maxMonto > 0;
   }
 
   guardar(): void {
@@ -252,13 +271,12 @@ export class AportesPage implements OnInit, OnDestroy {
       return;
     }
     const monto = this.form.monto === null || isNaN(this.form.monto) ? NaN : this.form.monto;
-    const meta = this.form.monto_meta === null || isNaN(this.form.monto_meta) ? NaN : this.form.monto_meta;
-    if (isNaN(monto) || monto < 0) {
-      this.errorFormulario = 'El monto debe ser un número mayor o igual a 0.';
+    if (isNaN(monto) || monto <= 0) {
+      this.errorFormulario = 'El monto debe ser un número mayor a 0.';
       return;
     }
-    if (isNaN(meta) || meta < 0) {
-      this.errorFormulario = 'El monto_meta debe ser un número mayor o igual a 0.';
+    if (monto > this.maxMonto) {
+      this.errorFormulario = `El monto excede lo solicitado: solo faltan ${formatoMoneda(this.maxMonto)} por recaudar.`;
       return;
     }
 
@@ -270,7 +288,6 @@ export class AportesPage implements OnInit, OnDestroy {
         id_cliente: this.form.id_cliente,
         id_quiniela: this.form.id_quiniela,
         monto,
-        monto_meta: meta,
       })
       .subscribe({
         next: (res) => {

@@ -157,13 +157,22 @@
   <div class="formulario-grid">
     <div class="campo">
       <label>Monto a aportar <span class="req">*</span></label>
-      <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.monto" />
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        [max]="maxMonto"
+        placeholder="0.00"
+        [(ngModel)]="form.monto" />
+      @if (form.id_quiniela) {
+        <div class="ayuda">
+          Máximo permitido: {{ moneda(maxMonto) }}
+          @if (!hayMontoDisponible) {
+            · la meta ya se completó
+          }
+        </div>
+      }
       <div class="ayuda">Se suma al acumulado si ya existe un aporte.</div>
-    </div>
-    <div class="campo">
-      <label>Meta de la quiniela (monto_meta) <span class="req">*</span></label>
-      <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.monto_meta" />
-      <div class="ayuda">Se llena con la meta de la quiniela seleccionada.</div>
     </div>
   </div>
 

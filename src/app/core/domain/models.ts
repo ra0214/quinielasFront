@@ -72,7 +72,6 @@ export interface AporteRequest {
   id_cliente: number;
   id_quiniela: number;
   monto: number;
-  monto_meta: number;
 }
 
 export type TipoMovimiento =
