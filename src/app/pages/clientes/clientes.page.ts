@@ -104,7 +104,7 @@ export class ClientesPage implements OnInit {
       clientes: this.datos.listar(),
       saldos: this.saldosSvc.listar(),
       quinielas: this.quinielasSvc.listar(),
-      aportes: this.aportesSvc.listar(),
+      aportes: this.aportesSvc.listar().pipe(catchError(() => of([]))),
     }).subscribe({
       next: ({ clientes, saldos, quinielas, aportes }) => {
         this.clientes.set(clientes);
