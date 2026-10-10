@@ -51,6 +51,12 @@
   </ng-template>
   <ng-template celda="acciones" let-fila>
     <button
+      class="btn btn-mini"
+      (click)="editar(fila)"
+      title="Editar movimiento">
+      <app-icono nombre="editar" />
+    </button>
+    <button
       class="btn btn-mini btn-peligro"
       (click)="eliminar(fila)"
       title="Eliminar movimiento">
@@ -59,7 +65,10 @@
   </ng-template>
 </app-tabla>
 
-<app-modal [visible]="modalVisible" titulo="Nuevo movimiento" (cerrar)="cerrarModal()">
+<app-modal
+  [visible]="modalVisible"
+  [titulo]="editando ? 'Editar movimiento' : 'Nuevo movimiento'"
+  (cerrar)="cerrarModal()">
   @if (errorFormulario) {
     <div class="aviso aviso-error">{{ errorFormulario }}</div>
   }
@@ -73,7 +82,7 @@
   <div class="formulario-grid">
     <div class="campo">
       <label>Cliente <span class="req">*</span></label>
-      <select [(ngModel)]="formulario.id_cliente">
+      <select [(ngModel)]="formulario.id_cliente" [disabled]="!!editando">
         <option [ngValue]="0" disabled>— Selecciona un cliente —</option>
         @for (c of clientes(); track c.id_cliente) {
           <option [ngValue]="c.id_cliente">{{ c.nombre }}</option>
@@ -108,6 +117,9 @@
         [(ngModel)]="formulario.monto"
         placeholder="0.00" />
       <div class="ayuda">Debe ser mayor a 0.</div>
+      @if (formulario.tipo === 'RETIRO' || formulario.tipo === 'PAGO_SALDO') {
+        <div class="ayuda">Saldo a favor del cliente: {{ saldoFavorActual }}</div>
+      }
     </div>
   </div>
 
@@ -122,7 +134,7 @@
   <div pie>
     <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
     <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
-      {{ guardando ? 'Guardando…' : 'Guardar' }}
+      {{ guardando ? 'Guardando…' : editando ? 'Guardar cambios' : 'Guardar' }}
     </button>
   </div>
 </app-modal>

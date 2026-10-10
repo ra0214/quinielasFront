@@ -19,6 +19,10 @@ export class MovimientosService {
     return this.api.post<{ message: string; movimiento: Movimiento }>('/movimientos', movimiento);
   }
 
+  actualizar(id: number, movimiento: MovimientoRequest): Observable<{ message: string; movimiento: Movimiento }> {
+    return this.api.put<{ message: string; movimiento: Movimiento }>(`/movimientos/${id}`, movimiento);
+  }
+
   eliminar(id: number): Observable<{ message: string }> {
     return this.api.delete<{ message: string }>(`/movimientos/${id}`);
   }

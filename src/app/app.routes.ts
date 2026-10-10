@@ -33,9 +33,26 @@ export const routes: Routes = [
       import('./pages/movimientos/movimientos.page').then((m) => m.MovimientosPage),
   },
   {
+    path: 'pagos',
+    loadComponent: () =>
+      import('./pages/movimientos/movimientos.page').then((m) => m.MovimientosPage),
+    data: { filtro: 'PAGO_EFECTIVO,PAGO_SALDO' },
+  },
+  {
+    path: 'retiros',
+    loadComponent: () =>
+      import('./pages/movimientos/movimientos.page').then((m) => m.MovimientosPage),
+    data: { filtro: 'RETIRO' },
+  },
+  {
     path: 'premios',
     loadComponent: () =>
       import('./pages/premios/premios.page').then((m) => m.PremiosPage),
+  },
+  {
+    path: 'anuncio',
+    loadComponent: () =>
+      import('./pages/anuncio/anuncio.page').then((m) => m.AnuncioPage),
   },
   { path: '**', redirectTo: 'clientes' },
 ];

@@ -19,6 +19,10 @@ export class AportesService {
     return this.api.post<{ message: string; aporte: Aporte }>('/aportes', aporte);
   }
 
+  actualizar(id: number, monto: number): Observable<{ message: string; aporte: Aporte }> {
+    return this.api.put<{ message: string; aporte: Aporte }>(`/aportes/${id}`, { monto });
+  }
+
   eliminar(id: number): Observable<{ message: string }> {
     return this.api.delete<{ message: string }>(`/aportes/${id}`);
   }

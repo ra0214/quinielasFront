@@ -148,7 +148,10 @@ export class SidebarComponent {
     { ruta: '/quinielas', etiqueta: 'Quinielas', icono: 'diana' },
     { ruta: '/saldos', etiqueta: 'Saldos', icono: 'billetera' },
     { ruta: '/aportes', etiqueta: 'Aportes', icono: 'monedas' },
+    { ruta: '/pagos', etiqueta: 'Pagos', icono: 'billete' },
+    { ruta: '/retiros', etiqueta: 'Retiros', icono: 'billetera' },
     { ruta: '/movimientos', etiqueta: 'Movimientos', icono: 'recargar' },
     { ruta: '/premios', etiqueta: 'Premios', icono: 'copa' },
+    { ruta: '/anuncio', etiqueta: 'Anuncio', icono: 'megafono' },
   ];
 }

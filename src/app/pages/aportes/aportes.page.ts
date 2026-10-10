@@ -83,8 +83,9 @@ export class AportesPage implements OnInit, OnDestroy {
     { clave: 'acciones', etiqueta: 'Acciones', clase: 'acciones', ordenable: false },
   ];
 
-  // Modal crear aporte
+  // Modal crear/editar aporte
   modalVisible = false;
+  editando: Aporte | null = null;
   form: FormAporte = { id_cliente: null, id_quiniela: null, monto: null };
   guardando = false;
   errorFormulario = '';
@@ -224,8 +225,14 @@ export class AportesPage implements OnInit, OnDestroy {
     return this.nombres.get(a.id_cliente) ?? `Cliente #${a.id_cliente}`;
   }
 
-  // ===== Crear aporte =====
+  nombreQuinielaLabel(a: Aporte): string {
+    const q = this.quinielas().find((x) => x.id_quiniela === a.id_quiniela);
+    return q ? `${q.nombre_variante} · #${q.id_quiniela} · Edición ${q.id_edicion}` : `Quiniela #${a.id_quiniela}`;
+  }
+
+  // ===== Crear / editar aporte =====
   nuevo(): void {
+    this.editando = null;
     this.form = {
       id_cliente: this.vista === 'cliente' ? this.idClienteSel : null,
       id_quiniela: this.vista === 'quiniela' ? this.idQuinielaSel : null,
@@ -236,9 +243,29 @@ export class AportesPage implements OnInit, OnDestroy {
     this.modalVisible = true;
   }
 
+  editar(a: Aporte): void {
+    this.editando = a;
+    this.form = {
+      id_cliente: a.id_cliente,
+      id_quiniela: a.id_quiniela,
+      monto: a.monto_total_acumulado,
+    };
+    // Recaudado actual de la quiniela (incluye este aporte): la barra de meta
+    // y el límite se calculan descontando el aporte en edición.
+    this.datos.porQuiniela(a.id_quiniela).subscribe({
+      next: (lista) => {
+        this.recaudadoQuinielaForm = lista.reduce((suma, x) => suma + x.monto_total_acumulado, 0);
+      },
+      error: () => (this.recaudadoQuinielaForm = 0),
+    });
+    this.errorFormulario = '';
+    this.modalVisible = true;
+  }
+
   cerrarModal(): void {
     this.modalVisible = false;
     this.guardando = false;
+    this.editando = null;
   }
 
   onQuinielaFormChange(): void {
@@ -263,7 +290,9 @@ export class AportesPage implements OnInit, OnDestroy {
   get maxMonto(): number {
     const q = this.quinielas().find((x) => x.id_quiniela === this.form.id_quiniela);
     if (!q) return 0;
-    return Math.max(0, q.monto_meta - this.recaudadoQuinielaForm);
+    let recaudado = this.recaudadoQuinielaForm;
+    if (this.editando) recaudado = recaudado - (this.editando.monto_total_acumulado || 0);
+    return Math.max(0, q.monto_meta - recaudado);
   }
 
   get hayMontoDisponible(): boolean {
@@ -288,24 +317,26 @@ export class AportesPage implements OnInit, OnDestroy {
     this.guardando = true;
     this.errorFormulario = '';
 
-    this.datos
-      .crear({
-        id_cliente: this.form.id_cliente,
-        id_quiniela: this.form.id_quiniela,
-        monto,
-      })
-      .subscribe({
-        next: (res) => {
-          this.toast.exito(res.message || 'Aporte registrado correctamente');
-          this.cerrarModal();
-          this.recargarVista();
-        },
-        error: (e) => {
-          this.errorFormulario = e.message;
-          this.guardando = false;
-          this.toast.error(e.message);
-        },
-      });
+    const peticion = this.editando
+      ? this.datos.actualizar(this.editando.id_aporte, monto)
+      : this.datos.crear({
+          id_cliente: this.form.id_cliente,
+          id_quiniela: this.form.id_quiniela,
+          monto,
+        });
+
+    peticion.subscribe({
+      next: (res) => {
+        this.toast.exito(res.message || (this.editando ? 'Aporte actualizado correctamente' : 'Aporte registrado correctamente'));
+        this.cerrarModal();
+        this.recargarVista();
+      },
+      error: (e) => {
+        this.errorFormulario = e.message;
+        this.guardando = false;
+        this.toast.error(e.message);
+      },
+    });
   }
 
   // ===== Eliminar aporte =====

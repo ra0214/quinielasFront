@@ -1,0 +1,145 @@
+<app-encabezado-pagina
+  titulo="Anuncio de quinielas"
+  descripcion="Estado público de cada quiniela: precio, fecha límite, recaudación y participantes">
+  <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
+</app-encabezado-pagina>
+
+<div class="aviso aviso-anuncio">
+  <app-icono nombre="megafono" />
+  <strong>Realiza tus aportes con nosotros, pregunte en ventanilla</strong>
+</div>
+
+<div class="resumen">
+  <app-tarjeta-resumen etiqueta="En juego" [valor]="enJuego" tono="verde" />
+  <app-tarjeta-resumen etiqueta="Completadas" [valor]="completadas" tono="azul" />
+  <app-tarjeta-resumen etiqueta="Meta global alcanzada" [valor]="porcentaje(porcentajeMeta)" tono="azul" />
+  <app-tarjeta-resumen etiqueta="Total recaudado" [valor]="totalRecaudado" tono="verde" />
+  <app-tarjeta-resumen etiqueta="Falta por recaudar" [valor]="moneda(totalResta)" tono="rojo" />
+</div>
+
+<div class="panel-como-aportar">
+  <div class="panel-col">
+    <h3><app-icono nombre="billetera" /> Cómo aportar</h3>
+    <p class="muted">{{ publicador }}</p>
+
+    <h4>Transferencias</h4>
+    <ul class="lista-cuentas">
+      @for (t of transferencias; track $index) {
+        <li>
+          <strong>{{ t.banco }}</strong> · Cuenta {{ t.tipo }}
+          <span class="num">{{ t.cuenta }}</span>
+          <span class="muted">{{ t.titular }}</span>
+        </li>
+      }
+    </ul>
+
+    <h4>Pago móvil</h4>
+    <p>
+      Banco <strong>{{ pagoMovil.banco }}</strong> · Teléfono
+      <strong>{{ pagoMovil.telefono }}</strong> · Cédula
+      <strong>{{ pagoMovil.cedula }}</strong>.
+    </p>
+    <p class="muted">{{ notaAportes }}</p>
+  </div>
+
+  <div class="panel-col">
+    <h3><app-icono nombre="reloj" /> Horario de ventanilla</h3>
+    <ul class="lista-horario">
+      @for (h of horario; track $index) {
+        <li>
+          <span>{{ h.dia }}</span>
+          <strong>{{ h.hora }}</strong>
+        </li>
+      }
+    </ul>
+
+    <h3><app-icono nombre="usuario" /> Contacto</h3>
+    <ul class="lista-horario">
+      <li><span>Teléfono</span><strong>{{ contacto.telefono }}</strong></li>
+      <li><span>WhatsApp</span><strong>{{ contacto.whatsapp }}</strong></li>
+      <li><span>Correo</span><strong>{{ contacto.correo }}</strong></li>
+    </ul>
+  </div>
+</div>
+
+<div class="aviso aviso-ejemplo">
+  <app-icono nombre="info" />
+  Datos de contacto, cuentas y horario son <strong>de ejemplo</strong>; se
+  reemplazarán por los reales.
+</div>
+
+@if (errorApi) {
+  <div class="aviso aviso-error">{{ errorApi }}</div>
+}
+
+@if (cargando) {
+  <div class="aviso aviso-info"><app-icono nombre="reloj" /> Cargando anuncio…</div>
+} @else if (anuncios().length === 0) {
+  <div class="vacio">
+    <app-icono nombre="diana" tamano="40px" />
+    <p>No hay quinielas para anunciar todavía.</p>
+  </div>
+} @else {
+  <div class="grid">
+    @for (q of anuncios(); track q.id_quiniela) {
+      <article class="tarjeta" [class.tono-completada]="tono(q) === 'completada'"
+        [class.tono-cancelable]="tono(q) === 'cancelable'"
+        [class.tono-cancelada]="tono(q) === 'cancelada'">
+        <header class="tarjeta-cabecera">
+          <div>
+            <h3>{{ q.variante }}</h3>
+            <span class="muted">{{ q.edicion }}</span>
+          </div>
+          <app-badge [valor]="tono(q)" [etiqueta]="tituloEstado(q)" />
+        </header>
+
+        <div class="datos">
+          <div class="dato">
+            <span class="muted">Precio del boleto</span>
+            <strong>{{ moneda(q.precio) }}</strong>
+          </div>
+          <div class="dato">
+            <span class="muted">Fecha límite</span>
+            <strong>{{ fecha(q.fecha_limite) }}</strong>
+          </div>
+          <div class="dato">
+            <span class="muted">Meta</span>
+            <strong>{{ moneda(q.monto_meta) }}</strong>
+          </div>
+          <div class="dato">
+            <span class="muted">Recaudado</span>
+            <strong class="texto-verde">{{ moneda(q.recaudado) }}</strong>
+          </div>
+                    <div class="dato">
+            <span class="muted">Falta</span>
+            <strong class="texto-rojo">{{ faltanteVisible(q) }}</strong>
+          </div>
+        </div>
+
+        <div class="progreso">
+          <div
+            class="progreso-barra"
+            [class.llena]="q.faltante <= 0"
+            [style.width.%]="anchoProgreso(q)">
+          </div>
+        </div>
+
+        @if (q.clientes.length > 0) {
+          <div class="clientes">
+            <h4>Participación</h4>
+            <ul>
+              @for (c of q.clientes; track $index) {
+                <li>
+                  <span>{{ c.nombre }}</span>
+                  <span class="num">{{ porcentaje(c.porcentaje) }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        } @else {
+          <p class="muted">Aún no hay aportes registrados para esta quiniela.</p>
+        }
+      </article>
+    }
+  </div>
+}

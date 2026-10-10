@@ -43,6 +43,15 @@
       <app-icono nombre="ver" /> Ver reparto
     </button>
     <button
+      class="btn btn-mini btn-primario"
+      (click)="publicar(fila)"
+      title="Publicar premio para los ganadores">
+      <app-icono nombre="megafono" /> Publicar
+    </button>
+    <button class="btn btn-mini btn-ghost" (click)="editar(fila)">
+      <app-icono nombre="editar" /> Editar
+    </button>
+    <button
       class="btn btn-mini btn-peligro"
       (click)="eliminar(fila)"
       title="Eliminar premio"
@@ -53,7 +62,10 @@
 </app-tabla>
 
 <!-- Modal registrar premio -->
-<app-modal [visible]="modalVisible" titulo="Registrar premio" (cerrar)="cerrarModal()">
+<app-modal
+  [visible]="modalVisible"
+  [titulo]="editandoPremioId === null ? 'Registrar premio' : 'Editar premio'"
+  (cerrar)="cerrarModal()">
   @if (errorFormulario) {
     <div class="aviso aviso-error">{{ errorFormulario }}</div>
   }
@@ -64,7 +76,7 @@
 
   <div class="campo">
     <label>Quiniela <span class="req">*</span></label>
-    <select [(ngModel)]="formulario.id_quiniela">
+    <select [(ngModel)]="formulario.id_quiniela" [disabled]="editandoPremioId !== null">
       <option [ngValue]="0" disabled>— Selecciona una quiniela —</option>
       @for (q of quinielas(); track q.id_quiniela) {
         <option [ngValue]="q.id_quiniela">{{ q.nombre_variante }} (#{{ q.id_quiniela }})</option>
@@ -85,7 +97,7 @@
   <div pie>
     <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
     <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
-      {{ guardando ? 'Guardando…' : 'Registrar' }}
+      {{ guardando ? 'Guardando…' : editandoPremioId === null ? 'Registrar' : 'Guardar cambios' }}
     </button>
   </div>
 </app-modal>
@@ -154,6 +166,53 @@
       <button class="btn btn-ghost" (click)="verSaldos()">Ver saldos</button>
     }
     <button class="btn btn-secundario" (click)="cerrarReparto()">Cerrar</button>
+  </div>
+</app-modal>
+
+<!-- Modal publicación del premio -->
+<app-modal
+  [visible]="publicacionVisible"
+  [titulo]="'Publicación del premio — ' + nombreQuiniela(publicandoPremio?.id_quiniela)"
+  [grande]="true"
+  (cerrar)="cerrarPublicacion()">
+  @if (publicacionCargando) {
+    <div class="aviso aviso-info"><app-icono nombre="reloj" /> Cargando publicación…</div>
+  } @else if (publicacionReparto) {
+    <div class="aviso aviso-info">
+      Ganadores de la quiniela {{ nombreQuiniela(publicandoPremio?.id_quiniela) }} ·
+      Reparto del {{ fechaPublicacionPreview }}. A cada ganador se le abonó su parte
+      neta (monto_neto_asignado) y el saldo a favor mostrado es el resultante
+      (favor − deuda, sin contar negativos).
+    </div>
+    <app-tabla
+      [columnas]="[
+        { clave: 'nombre_cliente', etiqueta: 'Ganador' },
+        { clave: 'premio', etiqueta: 'Premio ganado', tipo: 'moneda', clase: 'num' },
+        { clave: 'saldo', etiqueta: 'Saldo a favor', tipo: 'moneda', clase: 'num' }
+      ]"
+      [filas]="publicacionReparto.participantes"
+      trackClave="id_cliente"
+      iconoVacio="usuario"
+      mensajeVacio="Este reparto aún no tiene participantes">
+      <ng-template celda="nombre_cliente" let-fila>
+        <strong>{{ fila.nombre_cliente }}</strong>
+        <app-badge [valor]="'#' + fila.id_cliente" variante="gris" />
+      </ng-template>
+      <ng-template celda="premio" let-fila>
+        <span class="texto-verde">{{ moneda(fila.monto_neto_asignado) }}</span>
+      </ng-template>
+      <ng-template celda="saldo" let-fila>
+        <span class="texto-verde">{{ saldoPublicado(fila.id_cliente) }}</span>
+      </ng-template>
+    </app-tabla>
+  } @else {
+    @if (publicacionError) {
+      <div class="aviso aviso-error">{{ publicacionError }}</div>
+    }
+  }
+
+  <div pie>
+    <button class="btn btn-secundario" (click)="cerrarPublicacion()">Cerrar</button>
   </div>
 </app-modal>
 

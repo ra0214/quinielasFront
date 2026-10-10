@@ -22,6 +22,7 @@ import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
 import { ColumnaTabla, TablaComponent } from '../../ui/organisms/tabla/tabla.component';
 import { ClientesService } from '../clientes/data-access/clientes.service';
 import { QuinielasService } from '../quinielas/data-access/quinielas.service';
+import { SaldosService } from '../saldos/data-access/saldos.service';
 import { MovimientosService } from './data-access/movimientos.service';
 
 /** Movimiento enriquecido con el nombre del cliente para mostrar y ordenar la tabla. */
@@ -51,6 +52,7 @@ export class MovimientosPage implements OnInit, OnDestroy {
   private readonly datos = inject(MovimientosService);
   private readonly clientesDatos = inject(ClientesService);
   private readonly quinielasDatos = inject(QuinielasService);
+  private readonly saldosDatos = inject(SaldosService);
   private readonly toast = inject(ToastService);
   private readonly ruta = inject(ActivatedRoute);
 
@@ -71,6 +73,7 @@ export class MovimientosPage implements OnInit, OnDestroy {
   readonly movimientos = signal<Movimiento[]>([]);
   readonly clientes = signal<Cliente[]>([]);
   readonly quinielas = signal<Quiniela[]>([]);
+  readonly saldosPorCliente = new Map<number, number>();
 
   cargando = false;
   errorApi = '';
@@ -92,6 +95,7 @@ export class MovimientosPage implements OnInit, OnDestroy {
   // Modal crear
   modalVisible = false;
   formulario: MovimientoRequest = { id_cliente: 0, id_quiniela: null, tipo: '', monto: 0, descripcion: '' };
+  editando: Movimiento | null = null;
   guardando = false;
   errorFormulario = '';
 
@@ -103,6 +107,9 @@ export class MovimientosPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.cargarClientes();
     this.cargarQuinielas();
+    this.cargarSaldos();
+    // /pagos y /retiros llegan con un filtro fijo por tipo.
+    this.filtroTipo = (this.ruta.snapshot.data['filtro'] as string) ?? '';
     // llega desde Clientes con ?cliente=id
     this.sub = this.ruta.queryParams.subscribe((params) => {
       const id = Number(params['cliente']);
@@ -126,7 +133,9 @@ export class MovimientosPage implements OnInit, OnDestroy {
       ...m,
       nombre_cliente: this.mapaClientes[m.id_cliente] ?? `Cliente #${m.id_cliente}`,
     }));
-    return this.filtroTipo ? base.filter((m) => m.tipo === this.filtroTipo) : base;
+    if (!this.filtroTipo) return base;
+    const tipos = this.filtroTipo.split(',');
+    return base.filter((m) => tipos.includes(m.tipo));
   }
 
   get totalMovimientos(): string {
@@ -153,6 +162,16 @@ export class MovimientosPage implements OnInit, OnDestroy {
   cargarQuinielas(): void {
     this.quinielasDatos.listar().subscribe({
       next: (lista) => this.quinielas.set(lista),
+      error: (e) => this.toast.error(e.message),
+    });
+  }
+
+  cargarSaldos(): void {
+    this.saldosDatos.listar().subscribe({
+      next: (lista) => {
+        this.saldosPorCliente.clear();
+        for (const s of lista) this.saldosPorCliente.set(s.id_cliente, s.saldo_favor);
+      },
       error: (e) => this.toast.error(e.message),
     });
   }
@@ -189,6 +208,21 @@ export class MovimientosPage implements OnInit, OnDestroy {
       monto: 0,
       descripcion: '',
     };
+    this.editando = null;
+    this.errorFormulario = '';
+    this.guardando = false;
+    this.modalVisible = true;
+  }
+
+  editar(m: Movimiento): void {
+    this.formulario = {
+      id_cliente: m.id_cliente,
+      id_quiniela: m.id_quiniela ?? null,
+      tipo: m.tipo,
+      monto: m.monto,
+      descripcion: m.descripcion,
+    };
+    this.editando = m;
     this.errorFormulario = '';
     this.guardando = false;
     this.modalVisible = true;
@@ -196,7 +230,12 @@ export class MovimientosPage implements OnInit, OnDestroy {
 
   cerrarModal(): void {
     this.modalVisible = false;
+    this.editando = null;
     this.guardando = false;
+  }
+
+  get saldoFavorActual(): string {
+    return formatoMoneda(this.saldosPorCliente.get(this.formulario.id_cliente) ?? 0);
   }
 
   guardar(): void {
@@ -213,6 +252,13 @@ export class MovimientosPage implements OnInit, OnDestroy {
       this.errorFormulario = 'El monto es obligatorio y debe ser mayor a 0.';
       return;
     }
+    if (f.tipo === 'RETIRO' || f.tipo === 'PAGO_SALDO') {
+      const favor = this.saldosPorCliente.get(f.id_cliente) ?? 0;
+      if (f.monto > favor) {
+        this.errorFormulario = 'El cliente no tiene saldo a favor suficiente para este movimiento.';
+        return;
+      }
+    }
     if (!f.descripcion.trim()) {
       this.errorFormulario = 'La descripción es obligatoria.';
       return;
@@ -228,9 +274,13 @@ export class MovimientosPage implements OnInit, OnDestroy {
       descripcion: f.descripcion.trim(),
     };
 
-    this.datos.crear(cuerpo).subscribe({
+    const operacion = this.editando
+      ? this.datos.actualizar(this.editando.id_movimiento, cuerpo)
+      : this.datos.crear(cuerpo);
+
+    operacion.subscribe({
       next: (res) => {
-        this.toast.exito(res.message || 'Movimiento registrado');
+        this.toast.exito(res.message || (this.editando ? 'Movimiento actualizado' : 'Movimiento registrado'));
         this.cerrarModal();
         this.cargarMovimientos();
       },

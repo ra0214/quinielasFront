@@ -19,6 +19,10 @@ export class PremiosService {
     return this.api.post<{ message: string; premio: Premio }>('/premios', premio);
   }
 
+  actualizar(id: number, montoBruto: number): Observable<{ message: string; premio: Premio }> {
+    return this.api.put<{ message: string; premio: Premio }>(`/premios/${id}`, { monto_bruto: montoBruto });
+  }
+
   eliminar(id: number): Observable<{ message: string }> {
     return this.api.delete<{ message: string }>(`/premios/${id}`);
   }

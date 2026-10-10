@@ -68,6 +68,9 @@
         {{ porcentaje(fila.porcentaje_participacion) }}
       </ng-template>
       <ng-template celda="acciones" let-fila>
+        <button class="btn btn-mini btn-ghost" (click)="editar(fila)" title="Editar aporte">
+          <app-icono nombre="editar" /> Editar
+        </button>
         <button class="btn btn-mini btn-peligro" (click)="eliminar(fila)">
           <app-icono nombre="eliminar" /> Eliminar
         </button>
@@ -114,6 +117,9 @@
         {{ porcentaje(fila.porcentaje_participacion) }}
       </ng-template>
       <ng-template celda="acciones" let-fila>
+        <button class="btn btn-mini btn-ghost" (click)="editar(fila)" title="Editar aporte">
+          <app-icono nombre="editar" /> Editar
+        </button>
         <button class="btn btn-mini btn-peligro" (click)="eliminar(fila)">
           <app-icono nombre="eliminar" /> Eliminar
         </button>
@@ -126,33 +132,50 @@
   }
 }
 
-<!-- Modal crear aporte -->
-<app-modal [visible]="modalVisible" titulo="Nuevo aporte" (cerrar)="cerrarModal()">
+<!-- Modal crear/editar aporte -->
+<app-modal
+  [visible]="modalVisible"
+  [titulo]="editando ? 'Editar aporte' : 'Nuevo aporte'"
+  (cerrar)="cerrarModal()">
   @if (errorFormulario) {
     <div class="aviso aviso-error">{{ errorFormulario }}</div>
   }
   <div class="aviso aviso-info">
-    Si ya existe un aporte del cliente en esa quiniela, el monto se sumará al acumulado.
+    @if (editando) {
+      Este monto reemplaza el aporte actual del cliente en esa quiniela.
+    } @else {
+      Si ya existe un aporte del cliente en esa quiniela, el monto se sumará al acumulado.
+    }
   </div>
   <div class="campo">
     <label>Cliente <span class="req">*</span></label>
-    <select [(ngModel)]="form.id_cliente">
-      <option [ngValue]="null" disabled>— Selecciona un cliente —</option>
-      @for (c of clientes(); track c.id_cliente) {
-        <option [ngValue]="c.id_cliente">{{ c.nombre }} · #{{ c.id_cliente }}</option>
-      }
-    </select>
+    @if (editando) {
+      <input [value]="nombreDe(editando)" disabled />
+      <div class="ayuda">El cliente no cambia al editar un aporte.</div>
+    } @else {
+      <select [(ngModel)]="form.id_cliente">
+        <option [ngValue]="null" disabled>— Selecciona un cliente —</option>
+        @for (c of clientes(); track c.id_cliente) {
+          <option [ngValue]="c.id_cliente">{{ c.nombre }} · #{{ c.id_cliente }}</option>
+        }
+      </select>
+    }
   </div>
   <div class="campo">
     <label>Quiniela <span class="req">*</span></label>
-    <select [(ngModel)]="form.id_quiniela" (change)="onQuinielaFormChange()">
-      <option [ngValue]="null" disabled>— Selecciona una quiniela —</option>
-      @for (q of quinielas(); track q.id_quiniela) {
-        <option [ngValue]="q.id_quiniela">
-          {{ q.nombre_variante }} · #{{ q.id_quiniela }} · Edición {{ q.id_edicion }}
-        </option>
-      }
-    </select>
+    @if (editando) {
+      <input [value]="nombreQuinielaLabel(editando)" disabled />
+      <div class="ayuda">La quiniela no cambia al editar un aporte.</div>
+    } @else {
+      <select [(ngModel)]="form.id_quiniela" (change)="onQuinielaFormChange()">
+        <option [ngValue]="null" disabled>— Selecciona una quiniela —</option>
+        @for (q of quinielas(); track q.id_quiniela) {
+          <option [ngValue]="q.id_quiniela">
+            {{ q.nombre_variante }} · #{{ q.id_quiniela }} · Edición {{ q.id_edicion }}
+          </option>
+        }
+      </select>
+    }
   </div>
 
   @if (form.id_quiniela) {
@@ -197,7 +220,7 @@
   <div pie>
     <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
     <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
-      {{ guardando ? 'Guardando…' : 'Registrar aporte' }}
+      {{ guardando ? 'Guardando…' : editando ? 'Guardar cambios' : 'Registrar aporte' }}
     </button>
   </div>
 </app-modal>

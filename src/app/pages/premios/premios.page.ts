@@ -2,8 +2,9 @@ import { IconoComponent } from '../../ui/atoms/icono/icono.component';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { catchError, forkJoin, map, of } from 'rxjs';
 import { formatoFecha, formatoMoneda, formatoPorcentaje } from '../../core/domain/helpers';
-import { Premio, PremioRequest, Quiniela, RepartoPremio } from '../../core/domain/models';
+import { ParticipanteReparto, Premio, PremioRequest, Quiniela, RepartoPremio } from '../../core/domain/models';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
@@ -12,6 +13,7 @@ import { ModalComponent } from '../../ui/molecules/modal/modal.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
 import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
 import { ColumnaTabla, TablaComponent } from '../../ui/organisms/tabla/tabla.component';
+import { SaldosService } from '../saldos/data-access/saldos.service';
 import { QuinielasService } from '../quinielas/data-access/quinielas.service';
 import { PremiosService } from './data-access/premios.service';
 
@@ -40,6 +42,7 @@ interface PremioVista extends Premio {
 export class PremiosPage implements OnInit {
   private readonly datos = inject(PremiosService);
   private readonly quinielasDatos = inject(QuinielasService);
+  private readonly saldosDatos = inject(SaldosService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
@@ -69,8 +72,9 @@ export class PremiosPage implements OnInit {
     { clave: 'monto_neto_asignado', etiqueta: 'Neto asignado', tipo: 'moneda', clase: 'num' },
   ];
 
-  // Modal crear premio
+  // Modal crear/editar premio
   modalVisible = false;
+  editandoPremioId: number | null = null;
   formulario: PremioRequest = { id_quiniela: 0, monto_bruto: 0 };
   guardando = false;
   errorFormulario = '';
@@ -84,6 +88,14 @@ export class PremiosPage implements OnInit {
   repartoGenerable = false;
   repartoError = '';
   generarConfirmado = false;
+
+  // Modal publicación
+  publicacionVisible = false;
+  publicandoPremio: Premio | null = null;
+  publicacionReparto: RepartoPremio | null = null;
+  publicacionCargando = false;
+  publicacionError = '';
+  saldosPublicacion = new Map<number, number>();
 
   // Eliminar
   pendiente: Premio | null = null;
@@ -167,10 +179,19 @@ export class PremiosPage implements OnInit {
     return String(v);
   }
 
-  // ===== Modal crear premio =====
+  // ===== Modal crear/editar premio =====
 
   nuevo(): void {
+    this.editandoPremioId = null;
     this.formulario = { id_quiniela: 0, monto_bruto: 0 };
+    this.errorFormulario = '';
+    this.guardando = false;
+    this.modalVisible = true;
+  }
+
+  editar(p: Premio): void {
+    this.editandoPremioId = p.id_premio;
+    this.formulario = { id_quiniela: p.id_quiniela, monto_bruto: p.monto_bruto };
     this.errorFormulario = '';
     this.guardando = false;
     this.modalVisible = true;
@@ -178,12 +199,13 @@ export class PremiosPage implements OnInit {
 
   cerrarModal(): void {
     this.modalVisible = false;
+    this.editandoPremioId = null;
     this.guardando = false;
   }
 
   guardar(): void {
     const f = this.formulario;
-    if (!f.id_quiniela) {
+    if (this.editandoPremioId === null && !f.id_quiniela) {
       this.errorFormulario = 'Selecciona una quiniela.';
       return;
     }
@@ -196,9 +218,14 @@ export class PremiosPage implements OnInit {
     this.errorFormulario = '';
     const cuerpo: PremioRequest = { id_quiniela: f.id_quiniela, monto_bruto: f.monto_bruto };
 
-    this.datos.crear(cuerpo).subscribe({
+    const peticion =
+      this.editandoPremioId === null
+        ? this.datos.crear(cuerpo)
+        : this.datos.actualizar(this.editandoPremioId, cuerpo.monto_bruto);
+
+    peticion.subscribe({
       next: (res) => {
-        this.toast.exito(res.message || 'Premio registrado');
+        this.toast.exito(res.message || (this.editandoPremioId === null ? 'Premio registrado' : 'Premio actualizado'));
         this.cerrarModal();
         this.cargar();
       },
@@ -283,6 +310,69 @@ export class PremiosPage implements OnInit {
 
   verSaldos(): void {
     this.router.navigate(['/saldos']);
+  }
+
+  // ===== Publicación del premio =====
+
+  publicar(p: Premio): void {
+    this.publicandoPremio = p;
+    this.publicacionReparto = null;
+    this.saldosPublicacion = new Map();
+    this.publicacionError = '';
+    this.publicacionCargando = true;
+    this.publicacionVisible = true;
+
+    this.datos.obtenerReparto(p.id_quiniela).subscribe({
+      next: (r) => {
+        this.publicacionReparto = r;
+        this.cargarSaldosPublicacion(r.participantes);
+      },
+      error: (e) => {
+        this.publicacionCargando = false;
+        this.publicacionError =
+          e.message || 'No se pudo cargar el reparto. Genera el reparto antes de publicar.';
+      },
+    });
+  }
+
+  private cargarSaldosPublicacion(participantes: ParticipanteReparto[]): void {
+    if (participantes.length === 0) {
+      this.publicacionCargando = false;
+      return;
+    }
+    const peticiones = participantes.map((p) =>
+      this.saldosDatos.porCliente(p.id_cliente).pipe(
+        map((s) => [p.id_cliente, Math.max(0, s.saldo_favor - s.saldo_deuda)] as const),
+        catchError(() => of([p.id_cliente, 0] as const))
+      )
+    );
+    forkJoin(peticiones).subscribe({
+      next: (entradas) => {
+        const mapa = new Map<number, number>();
+        for (const [id, neto] of entradas) mapa.set(id, neto);
+        this.saldosPublicacion = mapa;
+        this.publicacionCargando = false;
+      },
+      error: () => {
+        this.publicacionCargando = false;
+      },
+    });
+  }
+
+  saldoPublicado(idCliente: number): string {
+    return formatoMoneda(this.saldosPublicacion.get(idCliente) ?? 0);
+  }
+
+  cerrarPublicacion(): void {
+    this.publicacionVisible = false;
+    this.publicandoPremio = null;
+    this.publicacionReparto = null;
+  }
+
+  get fechaPublicacionPreview(): string {
+    const r = this.publicacionReparto;
+    if (!r) return '—';
+    return this.fecha(r.fecha_reparto);
   }
 
   // ===== Eliminar =====

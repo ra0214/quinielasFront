@@ -49,42 +49,76 @@
     </span>
   </ng-template>
   <ng-template celda="acciones" let-fila>
+    <button class="btn btn-mini" (click)="pago(fila)" title="Registrar un pago del cliente">
+      <app-icono nombre="agregar" /> Pago
+    </button>
+    <button class="btn btn-mini" (click)="retiro(fila)" title="Registrar un retiro del cliente">
+      <app-icono nombre="agregar" /> Retiro
+    </button>
     <button class="btn btn-mini btn-ghost" (click)="editar(fila)" title="Edición rápida de saldo">
       <app-icono nombre="editar" /> Editar saldo
     </button>
   </ng-template>
 </app-tabla>
 
-<!-- Modal editar saldo -->
+<!-- Modal: ajuste de saldo, pago o retiro -->
 <app-modal
   [visible]="modalVisible"
-  [titulo]="'Editar saldo · ' + nombreEditando()"
+  [titulo]="tituloModal"
   (cerrar)="cerrarModal()">
   @if (errorFormulario) {
     <div class="aviso aviso-error">{{ errorFormulario }}</div>
   }
-  <div class="formulario-grid">
-    <div class="campo">
-      <label>Saldo a favor <span class="req">*</span></label>
-      <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.saldo_favor" />
-      <div class="ayuda">Dinero que el cliente tiene a su favor.</div>
+
+  @if (modo === 'ajuste') {
+    <div class="formulario-grid">
+      <div class="campo">
+        <label>Saldo a favor <span class="req">*</span></label>
+        <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.saldo_favor" />
+        <div class="ayuda">Dinero que el cliente tiene a su favor.</div>
+      </div>
+      <div class="campo">
+        <label>Saldo deuda <span class="req">*</span></label>
+        <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.saldo_deuda" />
+        <div class="ayuda">Dinero que el cliente debe.</div>
+      </div>
     </div>
-    <div class="campo">
-      <label>Saldo deuda <span class="req">*</span></label>
-      <input type="number" step="0.01" min="0" placeholder="0.00" [(ngModel)]="form.saldo_deuda" />
-      <div class="ayuda">Dinero que el cliente debe.</div>
+    <div class="aviso aviso-info">
+      Si un campo se deja vacío se guardará como $0.00. Los valores no pueden ser negativos.
+      Para este cliente se hará la compensación: por ejemplo, 100 a favor y 20 de deuda
+      quedan como 80 a favor y 0 de deuda.
     </div>
-  </div>
-  <div class="aviso aviso-info">
-    Si un campo se deja vacío se guardará como $0.00. Los valores no pueden ser negativos.
-    Para este cliente se hará la compensación: por ejemplo, 100 a favor y 20 de deuda
-    quedan como 80 a favor y 0 de deuda.
-  </div>
+  } @else {
+    <div class="aviso aviso-info">
+      Cliente: <strong>{{ nombreEditando() }}</strong> ·
+      Saldo a favor actual: <strong>{{ saldoFavorEditando }}</strong>. {{ lenguajeModal }}
+      El saldo se ajusta automáticamente como un movimiento y queda en el historial.
+    </div>
+    <div class="formulario-grid">
+      <div class="campo">
+        <label>Monto <span class="req">*</span></label>
+        <input
+          type="number"
+          step="0.01"
+          min="0.01"
+          [(ngModel)]="movForm.monto"
+          placeholder="0.00" />
+        <div class="ayuda">Debe ser mayor a 0.</div>
+      </div>
+      <div class="campo">
+        <label>Descripción</label>
+        <input
+          type="text"
+          [(ngModel)]="movForm.descripcion"
+          placeholder="Motivo del movimiento…" />
+      </div>
+    </div>
+  }
 
   <div pie>
     <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
     <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
-      {{ guardando ? 'Guardando…' : 'Guardar saldo' }}
+      {{ guardando ? 'Guardando…' : modo === 'ajuste' ? 'Guardar saldo' : modo === 'pago' ? 'Registrar pago' : 'Registrar retiro' }}
     </button>
   </div>
 </app-modal>

@@ -3,7 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
-import { AporteDetalle, Edicion, EstadoQuiniela, Quiniela, QuinielaRequest } from '../../core/domain/models';
+import { AporteDetalle, Cliente, Edicion, EstadoQuiniela, Quiniela, QuinielaRequest } from '../../core/domain/models';
 import { aRfc3339, deRfc3339AInput, formatoMoneda } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
@@ -15,6 +15,7 @@ import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/
 import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
 import { ColumnaTabla, TablaComponent } from '../../ui/organisms/tabla/tabla.component';
 import { AportesService } from '../aportes/data-access/aportes.service';
+import { ClientesService } from '../clientes/data-access/clientes.service';
 import { EdicionesService } from '../ediciones/data-access/ediciones.service';
 import { QuinielasService } from './data-access/quinielas.service';
 
@@ -59,12 +60,14 @@ interface FormularioQuiniela {
 export class QuinielasPage implements OnInit {
   private readonly datos = inject(QuinielasService);
   private readonly edicionesSvc = inject(EdicionesService);
+  private readonly clientesSvc = inject(ClientesService);
   private readonly aportes = inject(AportesService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
   readonly quinielas = signal<QuinielaVista[]>([]);
   readonly ediciones = signal<Edicion[]>([]);
+  readonly clientes = signal<Cliente[]>([]);
   readonly progresos = signal<Record<number, ProgresoQuiniela>>({});
   cargando = false;
   errorApi = '';
@@ -104,6 +107,13 @@ export class QuinielasPage implements OnInit {
   // Eliminar
   pendiente: QuinielaVista | null = null;
 
+  // Modal registrar aporte (misma ventana)
+  aporteVisible = false;
+  aportandoQuiniela: QuinielaVista | null = null;
+  aporteForm: { id_cliente: number; monto: number | null } = { id_cliente: 0, monto: null };
+  guardandoAporte = false;
+  errorAporte = '';
+
   ngOnInit(): void {
     this.cargar();
   }
@@ -126,9 +136,11 @@ export class QuinielasPage implements OnInit {
     forkJoin({
       quinielas: this.datos.listar(),
       ediciones: this.edicionesSvc.listar(),
+      clientes: this.clientesSvc.listar(),
     }).subscribe({
-      next: ({ quinielas, ediciones }) => {
+      next: ({ quinielas, ediciones, clientes }) => {
         this.ediciones.set(ediciones);
+        this.clientes.set(clientes);
         const nombres = new Map(ediciones.map((e) => [e.id_edicion, e.nombre_edicion]));
         this.quinielas.set(
           quinielas.map((q) => ({
@@ -276,6 +288,13 @@ export class QuinielasPage implements OnInit {
       this.errorFormulario = 'Selecciona el estado de la quiniela.';
       return;
     }
+    if (this.editandoId === null) {
+      const deEstaEdicion = this.quinielas().filter((q) => q.id_edicion === f.id_edicion).length;
+      if (deEstaEdicion >= 5) {
+        this.errorFormulario = 'Se alcanzó el límite de 5 quinielas por edición.';
+        return;
+      }
+    }
 
     const cuerpo: QuinielaRequest = {
       id_edicion: f.id_edicion,
@@ -329,5 +348,60 @@ export class QuinielasPage implements OnInit {
 
   abrirAportes(q: QuinielaVista): void {
     this.router.navigate(['/aportes'], { queryParams: { quiniela: q.id_quiniela } });
+  }
+
+  abrirAporte(q: QuinielaVista): void {
+    this.aportandoQuiniela = q;
+    this.aporteForm = { id_cliente: 0, monto: null };
+    this.errorAporte = '';
+    this.guardandoAporte = false;
+    this.aporteVisible = true;
+  }
+
+  cerrarAporteModal(): void {
+    this.aporteVisible = false;
+    this.aportandoQuiniela = null;
+    this.guardandoAporte = false;
+  }
+
+  get faltanteQuiniela(): string {
+    const q = this.aportandoQuiniela;
+    if (!q) return this.moneda(0);
+    const p = this.progreso(q.id_quiniela);
+    return this.moneda(p ? Math.max(0, p.faltante) : 0);
+  }
+
+  guardarAporte(): void {
+    const q = this.aportandoQuiniela;
+    if (!q) return;
+
+    if (!this.aporteForm.id_cliente) {
+      this.errorAporte = 'Selecciona un cliente.';
+      return;
+    }
+    const monto = this.aporteForm.monto === null || isNaN(this.aporteForm.monto) ? 0 : this.aporteForm.monto;
+    if (!(monto > 0)) {
+      this.errorAporte = 'El monto es obligatorio y debe ser mayor a 0.';
+      return;
+    }
+    const p = this.progreso(q.id_quiniela);
+    if (p && monto > p.faltante) {
+      this.errorAporte = `El aporte supera lo que falta por recaudar (${this.moneda(p.faltante)}).`;
+      return;
+    }
+
+    this.guardandoAporte = true;
+    this.errorAporte = '';
+    this.aportes.crear({ id_cliente: this.aporteForm.id_cliente, id_quiniela: q.id_quiniela, monto }).subscribe({
+      next: (res) => {
+        this.toast.exito(res.message || 'Aporte registrado correctamente');
+        this.cerrarAporteModal();
+        this.cargar();
+      },
+      error: (e) => {
+        this.errorAporte = e.message;
+        this.guardandoAporte = false;
+      },
+    });
   }
 }
