@@ -87,8 +87,8 @@ export class QuinielasPage implements OnInit {
   ];
 
   readonly columnas: ColumnaTabla[] = [
-    { clave: 'nombre_edicion', etiqueta: 'Edición' },
-    { clave: 'nombre_variante', etiqueta: 'Variante' },
+    { clave: 'nombre_edicion', etiqueta: 'NÚMERO' },
+    { clave: 'nombre_variante', etiqueta: 'ANALISTA' },
     { clave: 'precio', etiqueta: 'Precio', tipo: 'moneda', clase: 'num' },
     { clave: 'monto_meta', etiqueta: 'Meta', tipo: 'moneda', clase: 'num' },
     { clave: 'fecha_limite', etiqueta: 'Fecha límite', tipo: 'fecha' },
@@ -109,6 +109,11 @@ export class QuinielasPage implements OnInit {
 
   // Modal registrar aporte (misma ventana)
   aporteVisible = false;
+
+
+  tipoQuiniela: 'DIRECTA' | 'DIRECTA_EN_COPERACHA' | 'DESARROLLO' = 'DIRECTA';
+  clienteSeleccionado: number = 0;
+  cantidadBoletos: number | null = null;
   aportandoQuiniela: QuinielaVista | null = null;
   aporteForm: { id_cliente: number; monto: number | null } = { id_cliente: 0, monto: null };
   guardandoAporte = false;
