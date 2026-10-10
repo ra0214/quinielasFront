@@ -144,7 +144,7 @@ export class SidebarComponent {
   @Output() navegando = new EventEmitter<void>();
   @Input() items: ItemMenu[] = [
     { ruta: '/clientes', etiqueta: 'Clientes', icono: 'usuarios' },
-    { ruta: '/ediciones', etiqueta: 'Ediciones', icono: 'calendario' },
+    { ruta: '/ediciones', etiqueta: 'CONCURSO', icono: 'calendario' },
     { ruta: '/quinielas', etiqueta: 'Quinielas', icono: 'diana' },
     { ruta: '/saldos', etiqueta: 'Saldos', icono: 'billetera' },
     { ruta: '/aportes', etiqueta: 'Aportes', icono: 'monedas' },

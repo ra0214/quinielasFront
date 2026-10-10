@@ -43,7 +43,7 @@ export class EdicionesPage implements OnInit {
   readonly columnas: ColumnaTabla[] = [
     { clave: 'id_edicion', etiqueta: 'ID', tipo: 'numero' },
     { clave: 'tipo_edicion', etiqueta: 'Tipo' },
-    { clave: 'nombre_edicion', etiqueta: 'Nombre' },
+    { clave: 'nombre_edicion', etiqueta: 'Número' },
     { clave: 'fecha_inicio', etiqueta: 'Inicio', tipo: 'fecha' },
     { clave: 'acciones', etiqueta: 'Acciones', clase: 'acciones', ordenable: false },
   ];
@@ -55,6 +55,9 @@ export class EdicionesPage implements OnInit {
   fechaInicioEditando = '';
   guardando = false;
   errorFormulario = '';
+
+  // Modal de consulta info
+  consultaVisible = false;
 
   // Eliminar
   pendiente: Edicion | null = null;
@@ -98,6 +101,24 @@ export class EdicionesPage implements OnInit {
     this.fechaInicioEditando = '';
     this.errorFormulario = '';
     this.modalVisible = true;
+  }
+
+  abrirConsulta(): void {
+    this.consultaVisible = true;
+  }
+
+  cerrarConsulta(): void {
+    this.consultaVisible = false;
+  }
+
+  abrirMediaSemana(): void {
+    window.open('https://www.loterianacional.gob.mx/ProgolMediaSemana/Quiniela', '_blank', 'noopener,noreferrer');
+    this.cerrarConsulta();
+  }
+
+  abrirFinSemana(): void {
+    window.open('https://www.loterianacional.gob.mx/Progol/Momios', '_blank', 'noopener,noreferrer');
+    this.cerrarConsulta();
   }
 
   editar(e: Edicion): void {

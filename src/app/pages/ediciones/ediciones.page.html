@@ -1,7 +1,8 @@
 <app-encabezado-pagina
-  titulo="Ediciones"
-  descripcion="Registro y consulta de ediciones de quinielas">
-  <button class="btn btn-primario" (click)="nuevo()"><app-icono nombre="agregar" /> Nueva edición</button>
+  titulo="CONCURSO"
+  descripcion="Registro y consulta de concursos de quinielas">
+  <button class="btn btn-secundario" (click)="abrirConsulta()">CONSULTA INFO. MEDIA SEMANA/FIN DE SEMANA</button>
+  <button class="btn btn-primario" (click)="nuevo()">+ NUEVO CONCURSO</button>
 </app-encabezado-pagina>
 
 <div class="resumen">
@@ -51,25 +52,25 @@
 
 <app-modal
   [visible]="modalVisible"
-  [titulo]="editandoId === null ? 'Nueva edición' : 'Editar edición'"
+  [titulo]="editandoId === null ? 'NUEVO CONCURSO' : 'Editar concurso'"
   (cerrar)="cerrarModal()">
   @if (errorFormulario) {
     <div class="aviso aviso-error">{{ errorFormulario }}</div>
   }
   <div class="formulario-grid">
     <div class="campo">
-      <label>Tipo de edición <span class="req">*</span></label>
+      <label>Tipo de concurso <span class="req">*</span></label>
       <select [(ngModel)]="formulario.tipo_edicion">
-        <option value="MEDIA_SEMANA">Media semana</option>
         <option value="FIN_DE_SEMANA">Fin de semana</option>
+        <option value="MEDIA_SEMANA">Media semana</option>
       </select>
     </div>
     <div class="campo">
-      <label>Nombre <span class="req">*</span></label>
+      <label>Número de concurso <span class="req">*</span></label>
       <input
         type="text"
         [(ngModel)]="formulario.nombre_edicion"
-        placeholder="Ej. Quiniela 2026 – Semana 40" />
+        placeholder="Ej. 2353" />
     </div>
     @if (editandoId !== null) {
       <div class="campo">
@@ -81,10 +82,21 @@
   </div>
 
   <div pie>
-    <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
+    <button class="btn btn-ghost" (click)="cerrarModal()">CANCELAR</button>
     <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
-      {{ guardando ? 'Guardando…' : 'Guardar' }}
+      {{ guardando ? 'Guardando…' : 'CREAR' }}
     </button>
+  </div>
+</app-modal>
+
+<!-- Modal consulta info -->
+<app-modal [visible]="consultaVisible" titulo="¿Qué quiniela deseas obtener info.?" (cerrar)="cerrarConsulta()">
+  <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px">
+    <button class="btn btn-secundario" (click)="abrirMediaSemana()">MEDIA SEMANA</button>
+    <button class="btn btn-secundario" (click)="abrirFinSemana()">FIN DE SEMANA</button>
+  </div>
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarConsulta()">Cancelar</button>
   </div>
 </app-modal>
 
