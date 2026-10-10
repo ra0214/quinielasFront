@@ -83,6 +83,7 @@
   (confirmar)="confirmarEliminacion()"
   (cancelar)="pendiente = null">
 </app-confirm-dialog>
+\n
 
 <!-- Modal: registros asociados que impiden el borrado -->
 <app-modal
@@ -164,3 +165,4 @@
   </div>
 </app-modal>
 
+<app-modal [visible]="detalleVisible" titulo="Detalle" (cerrar)="cerrarDetalle()"><div pie><button class="btn btn-ghost" (click)="cerrarDetalle()">Cerrar</button></div></app-modal>
