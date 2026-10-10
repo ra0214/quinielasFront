@@ -32,18 +32,7 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/movimientos/movimientos.page').then((m) => m.MovimientosPage),
   },
-  {
-    path: 'pagos',
-    loadComponent: () =>
-      import('./pages/movimientos/movimientos.page').then((m) => m.MovimientosPage),
-    data: { filtro: 'PAGO_EFECTIVO,PAGO_SALDO' },
-  },
-  {
-    path: 'retiros',
-    loadComponent: () =>
-      import('./pages/movimientos/movimientos.page').then((m) => m.MovimientosPage),
-    data: { filtro: 'RETIRO' },
-  },
+
   {
     path: 'premios',
     loadComponent: () =>
