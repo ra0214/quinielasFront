@@ -165,4 +165,31 @@
   </div>
 </app-modal>
 
-<app-modal [visible]="detalleVisible" titulo="Detalle" (cerrar)="cerrarDetalle()"><div pie><button class="btn btn-ghost" (click)="cerrarDetalle()">Cerrar</button></div></app-modal>
+<app-modal [visible]="detalleVisible" [titulo]="'Quinielas en juego · ' + (registrosCliente?.nombre ?? '')" (cerrar)="cerrarDetalle()">
+  <section class="bloque-registros">
+    <h4>Quinielas en juego ({{ detalleQuinielas.length }})</h4>
+    @if (detalleQuinielas.length === 0) {
+      <p class="texto-ayuda">Este cliente no tiene quinielas en juego.</p>
+    } @else {
+      <div class="lista-registros">
+        @for (q of detalleQuinielas; track q.id_quiniela) {
+          <div class="fila-registro">
+            <div class="fila-registro-principal">
+              <strong>Quiniela #{{ q.id_quiniela }} · {{ q.nombre_variante }}</strong>
+              <span>{{ moneda(q.precio) }}</span>
+            </div>
+            <div class="fila-registro-secundaria">
+              <span>Estado: {{ q.estado }}</span>
+              <span>Meta: {{ moneda(q.monto_meta) }}</span>
+              <span>Límite: {{ fecha(q.fecha_limite) }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarDetalle()">Cerrar</button>
+  </div>
+</app-modal>
