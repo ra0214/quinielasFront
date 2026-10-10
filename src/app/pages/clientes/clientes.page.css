@@ -61,3 +61,7 @@
 .texto-rojo {
   color: #dc2626;
 }
+
+.saldo-verde { color: #16a34a; font-weight: 600; }
+.saldo-rojo { color: #dc2626; font-weight: 600; }
+.saldo-neutro { color: #6b7280; }
