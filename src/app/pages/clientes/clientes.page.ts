@@ -254,4 +254,48 @@ export class ClientesPage implements OnInit {
   verMovimientos(c: Cliente): void {
     this.router.navigate(['/movimientos'], { queryParams: { cliente: c.id_cliente } });
   }
+
+  saldoDeCliente(c: Cliente): Saldo | undefined {
+    return this.saldos().find((s) => s.id_cliente === c.id_cliente);
+  }
+
+  saldoNeto(c: Cliente): number {
+    const s = this.saldoDeCliente(c);
+    if (!s) return 0;
+    return (s.saldo_favor ?? 0) - (s.saldo_deuda ?? 0);
+  }
+
+  saldoTexto(c: Cliente): string {
+    const n = this.saldoNeto(c);
+    return formatoMoneda(n);
+  }
+
+  saldoClase(c: Cliente): string {
+    const n = this.saldoNeto(c);
+    if (n > 0) return 'saldo-verde';
+    if (n < 0) return 'saldo-rojo';
+    return 'saldo-neutro';
+  }
+
+  quinielasJugando(c: Cliente): Quiniela[] {
+    const list = this.quinielas().filter((q) => q.estado === 'EN_JUEGO');
+    return list;
+  }
+
+  countQuinielasJugando(c: Cliente): number {
+    return this.quinielasJugando(c).length;
+  }
+
+  abrirDetalleQuinielas(c: Cliente): void {
+    this.detalleQuinielas = this.quinielasJugando(c);
+    this.registrosCliente = c;
+    this.detalleVisible = true;
+  }
+
+  cerrarDetalle(): void {
+    this.detalleVisible = false;
+    this.detalleQuinielas = [];
+    this.registrosCliente = null;
+  }
+
 }
