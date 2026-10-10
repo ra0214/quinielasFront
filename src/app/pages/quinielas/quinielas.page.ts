@@ -3,7 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
-import { AporteDetalle, Cliente, Edicion, EstadoQuiniela, Quiniela, QuinielaRequest } from '../../core/domain/models';
+import { AporteDetalle, Cliente, Edicion, EstadoQuiniela, Quiniela, QuinielaRequest, TipoPagoQuiniela, TipoQuiniela } from '../../core/domain/models';
 import { aRfc3339, deRfc3339AInput, formatoMoneda } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
@@ -33,10 +33,15 @@ interface ProgresoQuiniela {
 interface FormularioQuiniela {
   id_edicion: number;
   nombre_variante: string;
-  precio: number | null;
+  precio: number | null; // precio por boleto (DIRECTA/COPERACHA) o costo total (DESARROLLO)
+  cantidad_boletos: number | null; // solo DIRECTA_EN_COPERACHA
   monto_meta: number | null;
   fecha_limite: string; // valor de input datetime-local
   estado: string;
+  tipo_quiniela: TipoQuiniela;
+  id_cliente: number; // 0 = sin seleccionar
+  tipo_pago: TipoPagoQuiniela;
+  monto_pagado: number | null; // solo PAGO_PARCIAL
 }
 
 @Component({
@@ -74,6 +79,16 @@ export class QuinielasPage implements OnInit {
 
   readonly variantes = ['Neto', 'Otros', 'Tlacuache', 'Salomón', 'Extra'];
   readonly estados: EstadoQuiniela[] = ['EN_JUEGO', 'COMPLETADA', 'CANCELADA'];
+  readonly tiposQuiniela: { valor: TipoQuiniela; etiqueta: string }[] = [
+    { valor: 'DIRECTA', etiqueta: 'Directa' },
+    { valor: 'DIRECTA_EN_COPERACHA', etiqueta: 'Directa en coperacha' },
+    { valor: 'DESARROLLO', etiqueta: 'Desarrollo' },
+  ];
+  readonly tiposPago: { valor: TipoPagoQuiniela; etiqueta: string }[] = [
+    { valor: 'CONTADO', etiqueta: 'Pagado (contado)' },
+    { valor: 'PAGO_PARCIAL', etiqueta: 'Pago parcial' },
+    { valor: 'A_CREDITO', etiqueta: 'A crédito (pendiente)' },
+  ];
 
   // Filtros
   filtroEstado: 'TODAS' | EstadoQuiniela = 'TODAS';
@@ -89,7 +104,9 @@ export class QuinielasPage implements OnInit {
   readonly columnas: ColumnaTabla[] = [
     { clave: 'nombre_edicion', etiqueta: 'NÚMERO' },
     { clave: 'nombre_variante', etiqueta: 'ANALISTA' },
+    { clave: 'tipo', etiqueta: 'Tipo', ordenable: false },
     { clave: 'precio', etiqueta: 'Precio', tipo: 'moneda', clase: 'num' },
+    { clave: 'pago', etiqueta: 'Estado de pago', ordenable: false },
     { clave: 'monto_meta', etiqueta: 'Meta', tipo: 'moneda', clase: 'num' },
     { clave: 'fecha_limite', etiqueta: 'Fecha límite', tipo: 'fecha' },
     { clave: 'progreso', etiqueta: 'Progreso', ordenable: false },
@@ -125,13 +142,19 @@ export class QuinielasPage implements OnInit {
 
   private formularioVacio(): FormularioQuiniela {
     const primera = this.ediciones()[0];
+    const primerCliente = this.clientes()[0]?.id_cliente ?? 0;
     return {
       id_edicion: primera ? primera.id_edicion : 0,
       nombre_variante: 'Neto',
       precio: null,
+      cantidad_boletos: 1,
       monto_meta: null,
       fecha_limite: '',
       estado: 'EN_JUEGO',
+      tipo_quiniela: 'DIRECTA',
+      id_cliente: primerCliente,
+      tipo_pago: 'CONTADO',
+      monto_pagado: null,
     };
   }
 
@@ -239,6 +262,68 @@ export class QuinielasPage implements OnInit {
     return formatoMoneda(v);
   }
 
+  /** Total a cobrar al cliente según el tipo de quiniela. */
+  totalCobrar(q: Quiniela): number {
+    const precio = q.precio || 0;
+    if (q.tipo_quiniela === 'DIRECTA_EN_COPERACHA') {
+      const cant = q.cantidad_boletos || 1;
+      return precio * cant;
+    }
+    return precio;
+  }
+
+  totalCobrarForm(f: FormularioQuiniela): number {
+    if (f.tipo_quiniela === 'DIRECTA_EN_COPERACHA') {
+      return (f.precio ?? 0) * (f.cantidad_boletos ?? 1);
+    }
+    return f.precio ?? 0;
+  }
+
+  etiquetaTipo(valor: string): string {
+    switch (valor) {
+      case 'DIRECTA':
+        return 'Directa';
+      case 'DIRECTA_EN_COPERACHA':
+        return 'Directa en coperacha';
+      case 'DESARROLLO':
+        return 'Desarrollo';
+      default:
+        return valor || '—';
+    }
+  }
+
+  /** Estado de pago mostrado en la tabla. */
+  estadoPago(q: Quiniela): { texto: string; clase: string } {
+    const pagado = q.monto_pagado || 0;
+    const total = this.totalCobrar(q);
+    if (!q.id_cliente || total === 0) {
+      return { texto: '—', clase: 'saldo-cero' };
+    }
+    if (pagado <= 0) {
+      return { texto: 'Pendiente / Fiado', clase: 'texto-rojo' };
+    }
+    if (pagado >= total) {
+      return { texto: 'Pagado', clase: 'texto-verde' };
+    }
+    return { texto: `Pago parcial (${this.moneda(pagado)}/${this.moneda(total)})`, clase: 'texto-amarillo' };
+  }
+
+  refrescarMontoPagado(): void {
+    const f = this.formulario;
+    const total = this.totalCobrarForm(f);
+    if (f.tipo_pago === 'CONTADO') {
+      f.monto_pagado = total;
+    } else if (f.tipo_pago === 'A_CREDITO') {
+      f.monto_pagado = 0;
+    }
+  }
+
+  nombreCliente(id: number | null | undefined): string {
+    if (!id) return 'Sin cliente';
+    const c = this.clientes().find((x) => x.id_cliente === id);
+    return c ? c.nombre : `Cliente #${id}`;
+  }
+
   nuevo(): void {
     this.editandoId = null;
     this.formulario = this.formularioVacio();
@@ -252,9 +337,14 @@ export class QuinielasPage implements OnInit {
       id_edicion: q.id_edicion,
       nombre_variante: q.nombre_variante,
       precio: q.precio,
+      cantidad_boletos: q.cantidad_boletos || 1,
       monto_meta: q.monto_meta,
       fecha_limite: deRfc3339AInput(q.fecha_limite),
       estado: q.estado,
+      tipo_quiniela: (q.tipo_quiniela as TipoQuiniela) || 'DIRECTA',
+      id_cliente: q.id_cliente ?? 0,
+      tipo_pago: (q.tipo_pago as TipoPagoQuiniela) || 'A_CREDITO',
+      monto_pagado: q.monto_pagado ?? null,
     };
     this.errorFormulario = '';
     this.modalVisible = true;
@@ -277,9 +367,36 @@ export class QuinielasPage implements OnInit {
       this.errorFormulario = 'Selecciona la variante de la quiniela.';
       return;
     }
+    if (!f.tipo_quiniela) {
+      this.errorFormulario = 'Selecciona el tipo de quiniela.';
+      return;
+    }
     if (f.precio == null || f.precio <= 0) {
       this.errorFormulario = 'El precio es obligatorio y debe ser mayor a 0.';
       return;
+    }
+    if (f.tipo_quiniela === 'DIRECTA_EN_COPERACHA' && (!f.cantidad_boletos || f.cantidad_boletos < 1)) {
+      this.errorFormulario = 'La cantidad de boletos debe ser al menos 1.';
+      return;
+    }
+    const total = this.totalCobrarForm(f);
+    if (!f.id_cliente) {
+      this.errorFormulario = 'Selecciona el cliente que paga la quiniela.';
+      return;
+    }
+    let montoPagado = 0;
+    if (f.tipo_pago === 'CONTADO') {
+      montoPagado = total;
+    } else if (f.tipo_pago === 'PAGO_PARCIAL') {
+      if (f.monto_pagado == null || f.monto_pagado <= 0) {
+        this.errorFormulario = 'Indica el monto pagado en el pago parcial.';
+        return;
+      }
+      if (f.monto_pagado > total) {
+        this.errorFormulario = 'El monto pagado no puede superar el total a cobrar.';
+        return;
+      }
+      montoPagado = f.monto_pagado;
     }
     if (f.monto_meta != null && f.monto_meta < 0) {
       this.errorFormulario = 'El monto meta no puede ser negativo.';
@@ -307,6 +424,12 @@ export class QuinielasPage implements OnInit {
       precio: f.precio ?? 0,
       monto_meta: f.monto_meta ?? 0,
       fecha_limite: aRfc3339(f.fecha_limite),
+      tipo_quiniela: f.tipo_quiniela,
+      id_cliente: f.id_cliente,
+      monto_pagado: montoPagado,
+      cantidad_boletos: f.tipo_quiniela === 'DIRECTA_EN_COPERACHA' ? (f.cantidad_boletos ?? 1) : 0,
+      analista: f.nombre_variante,
+      tipo_pago: f.tipo_pago,
     };
     this.guardando = true;
     this.errorFormulario = '';

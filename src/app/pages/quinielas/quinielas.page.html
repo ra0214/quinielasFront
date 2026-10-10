@@ -40,6 +40,20 @@
   <ng-template celda="nombre_edicion" let-fila>
     <strong>{{ fila.nombre_edicion }}</strong>
   </ng-template>
+  <ng-template celda="tipo" let-fila>
+    <span title="{{ fila.tipo_quiniela }}">{{ etiquetaTipo(fila.tipo_quiniela ?? '') }}</span>
+    @if (fila.cantidad_boletos > 1) {
+      <span class="ayuda"> · {{ fila.cantidad_boletos }} b</span>
+    }
+  </ng-template>
+  <ng-template celda="pago" let-fila>
+    @if (fila.id_cliente) {
+      <span [class]="estadoPago(fila).clase">{{ estadoPago(fila).texto }}</span>
+      <div class="ayuda" title="{{ fila.id_cliente }}">{{ nombreCliente(fila.id_cliente) }}</div>
+    } @else {
+      <span class="saldo-cero">Sin cliente</span>
+    }
+  </ng-template>
   <ng-template celda="progreso" let-fila>
     @if (progreso(fila.id_quiniela); as p) {
       <div class="progreso">
@@ -156,6 +170,14 @@
       }
     </div>
     <div class="campo">
+      <label>Tipo de quiniela <span class="req">*</span></label>
+      <select [(ngModel)]="formulario.tipo_quiniela" (ngModelChange)="refrescarMontoPagado()">
+        @for (t of tiposQuiniela; track t.valor) {
+          <option [value]="t.valor">{{ t.etiqueta }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
       <label>ANALISTA <span class="req">*</span></label>
       <select [(ngModel)]="formulario.nombre_variante">
         @for (v of variantes; track v) {
@@ -164,15 +186,66 @@
       </select>
     </div>
     <div class="campo">
-      <label>Precio por boleto <span class="req">*</span></label>
+      <label>
+        @if (formulario.tipo_quiniela === 'DESARROLLO') {
+          Costo total del boleto
+        } @else {
+          Precio por boleto
+        }
+        <span class="req">*</span>
+      </label>
       <input type="number" min="0" step="0.5" [(ngModel)]="formulario.precio" placeholder="Ej. 50" />
       <div class="ayuda">Debe ser mayor a 0.</div>
     </div>
+    @if (formulario.tipo_quiniela === 'DIRECTA_EN_COPERACHA') {
+      <div class="campo">
+        <label>Cantidad de boletos <span class="req">*</span></label>
+        <input type="number" min="1" step="1" [(ngModel)]="formulario.cantidad_boletos" placeholder="1" />
+        <div class="ayuda">Total a cobrar: {{ moneda(totalCobrarForm(formulario)) }}.</div>
+      </div>
+    }
     <div class="campo">
       <label>COSTO TOTAL DE LA QUINIELA</label>
       <input type="number" min="0" step="1" [(ngModel)]="formulario.monto_meta" placeholder="Ej. 5000" />
       <div class="ayuda">Puede quedar en 0 si aún no hay meta.</div>
     </div>
+    <div class="campo">
+      <label>Cliente <span class="req">*</span></label>
+      <select [(ngModel)]="formulario.id_cliente">
+        <option [ngValue]="0" disabled>— Selecciona un cliente —</option>
+        @for (c of clientes(); track c.id_cliente) {
+          <option [ngValue]="c.id_cliente">{{ c.nombre }}</option>
+        }
+      </select>
+      <div class="ayuda">El cobro afecta el saldo de este cliente.</div>
+    </div>
+    <div class="campo">
+      <label>Estado / Método de pago <span class="req">*</span></label>
+      <select [(ngModel)]="formulario.tipo_pago" (ngModelChange)="refrescarMontoPagado()">
+        @for (tp of tiposPago; track tp.valor) {
+          <option [value]="tp.valor">{{ tp.etiqueta }}</option>
+        }
+      </select>
+    </div>
+    @if (formulario.tipo_pago === 'PAGO_PARCIAL') {
+      <div class="campo">
+        <label>Monto pagado <span class="req">*</span></label>
+        <input type="number" min="0.01" step="0.01" [(ngModel)]="formulario.monto_pagado" placeholder="0.00" />
+        <div class="ayuda">Total a cobrar: {{ moneda(totalCobrarForm(formulario)) }}; el resto queda fiado.</div>
+      </div>
+    } @else if (formulario.tipo_pago === 'CONTADO') {
+      <div class="campo">
+        <label>Monto pagado</label>
+        <input type="number" [(ngModel)]="formulario.monto_pagado" disabled />
+        <div class="ayuda">Pago completo: {{ moneda(totalCobrarForm(formulario)) }}.</div>
+      </div>
+    } @else {
+      <div class="campo">
+        <label>Monto pagado</label>
+        <input type="number" [ngModel]="0" disabled />
+        <div class="ayuda">Queda pendiente: {{ moneda(totalCobrarForm(formulario)) }}.</div>
+      </div>
+    }
     <div class="campo">
       <label>Fecha y hora límite <span class="req">*</span></label>
       <input type="datetime-local" [(ngModel)]="formulario.fecha_limite" required />

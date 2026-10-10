@@ -26,6 +26,10 @@ export interface EdicionRequest {
 
 export type EstadoQuiniela = 'EN_JUEGO' | 'COMPLETADA' | 'CANCELADA';
 
+export type TipoQuiniela = 'DIRECTA' | 'DIRECTA_EN_COPERACHA' | 'DESARROLLO';
+
+export type TipoPagoQuiniela = 'CONTADO' | 'PAGO_PARCIAL' | 'A_CREDITO';
+
 export interface Quiniela {
   id_quiniela: number;
   id_edicion: number;
@@ -34,6 +38,12 @@ export interface Quiniela {
   monto_meta: number;
   fecha_limite: string;
   estado: EstadoQuiniela | string;
+  tipo_quiniela?: TipoQuiniela | string;
+  id_cliente?: number | null;
+  monto_pagado?: number;
+  cantidad_boletos?: number;
+  analista?: string;
+  tipo_pago?: TipoPagoQuiniela | string;
 }
 
 export interface QuinielaRequest {
@@ -43,6 +53,12 @@ export interface QuinielaRequest {
   monto_meta: number;
   fecha_limite: string; // RFC3339 estricto
   estado?: string;
+  tipo_quiniela?: string;
+  id_cliente?: number | null;
+  monto_pagado?: number;
+  cantidad_boletos?: number;
+  analista?: string;
+  tipo_pago?: string;
 }
 
 export interface Saldo {

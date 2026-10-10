@@ -211,6 +211,7 @@ body {
 
 .texto-rojo { color: var(--rojo); font-weight: 700; }
 .texto-verde { color: var(--verde); font-weight: 700; }
+.texto-amarillo { color: var(--ambar); font-weight: 700; }
 .saldo-cero { color: var(--texto-suave); }
 
 /* ===== Ajustes móviles globales ===== */
