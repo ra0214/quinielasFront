@@ -31,7 +31,7 @@
   <ng-template celda="nombre" let-fila>
     <strong>{{ fila.nombre }}</strong>
   </ng-template>
-  <ng-template celda="acciones" let-fila>
+  <ng-template celda="quinielas" let-fila><button class="btn btn-mini btn-ghost" (click)="abrirDetalleQuinielas(fila)">{{ countQuinielasJugando(fila) }} (+)</button></ng-template><ng-template celda="saldo" let-fila><span [class]="saldoClase(fila)">{{ saldoTexto(fila) }}</span></ng-template><ng-template celda="acciones" let-fila>
     <button
       class="btn btn-mini btn-secundario"
       (click)="verMovimientos(fila)"
@@ -163,3 +163,4 @@
     <button class="btn btn-ghost" (click)="cerrarRegistros()">Cerrar</button>
   </div>
 </app-modal>
+
