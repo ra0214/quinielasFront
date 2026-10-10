@@ -100,9 +100,16 @@ export class ClientesPage implements OnInit {
   cargar(): void {
     this.cargando = true;
     this.errorApi = '';
-    this.datos.listar().subscribe({
-      next: (lista) => {
-        this.clientes.set(lista);
+    forkJoin({
+      clientes: this.datos.listar(),
+      saldos: this.saldosSvc.listar(),
+      quinielas: this.quinielasSvc.listar()
+    }).subscribe({
+      next: ({ clientes, saldos, quinielas }) => {
+        this.clientes.set(clientes);
+        this.saldos.set(saldos);
+        this.quinielas.set(quinielas);
+        this.aportesPorCliente.set({});
         this.cargando = false;
       },
       error: (e) => {
