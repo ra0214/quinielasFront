@@ -7,6 +7,10 @@ import { Aporte, AporteDetalle, AporteRequest } from '../../../core/domain/model
 export class AportesService {
   constructor(private readonly api: ApiService) {}
 
+  listar(): Observable<AporteDetalle[]> {
+    return this.api.getList<AporteDetalle>('/aportes');
+  }
+
   porQuiniela(idQuiniela: number): Observable<AporteDetalle[]> {
     return this.api.getList<AporteDetalle>(`/aportes/quiniela/${idQuiniela}`);
   }

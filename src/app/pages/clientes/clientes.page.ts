@@ -103,13 +103,19 @@ export class ClientesPage implements OnInit {
     forkJoin({
       clientes: this.datos.listar(),
       saldos: this.saldosSvc.listar(),
-      quinielas: this.quinielasSvc.listar()
+      quinielas: this.quinielasSvc.listar(),
+      aportes: this.aportesSvc.listar(),
     }).subscribe({
-      next: ({ clientes, saldos, quinielas}: any) => {
+      next: ({ clientes, saldos, quinielas, aportes }) => {
         this.clientes.set(clientes);
         this.saldos.set(saldos);
         this.quinielas.set(quinielas);
-        this.aportesPorCliente.set({});
+        const mapa: Record<number, Aporte[]> = {};
+        for (const a of aportes) {
+          if (!mapa[a.id_cliente]) mapa[a.id_cliente] = [];
+          mapa[a.id_cliente].push(a);
+        }
+        this.aportesPorCliente.set(mapa);
         this.cargando = false;
       },
       error: (e) => {
