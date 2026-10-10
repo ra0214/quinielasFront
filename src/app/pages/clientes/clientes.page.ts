@@ -18,6 +18,8 @@ import { ClientesService } from './data-access/clientes.service';
 import { MovimientosService } from '../movimientos/data-access/movimientos.service';
 import { AportesService } from '../aportes/data-access/aportes.service';
 import { SaldosService } from '../saldos/data-access/saldos.service';
+import { QuinielasService } from '../quinielas/data-access/quinielas.service';
+import { Quiniela, EstadoQuiniela } from '../../core/domain/models';
 
 @Component({
   selector: 'app-clientes',
@@ -41,10 +43,14 @@ export class ClientesPage implements OnInit {
   private readonly movimientosSvc = inject(MovimientosService);
   private readonly aportesSvc = inject(AportesService);
   private readonly saldosSvc = inject(SaldosService);
+  private readonly quinielasSvc = inject(QuinielasService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
   readonly clientes = signal<Cliente[]>([]);
+  readonly saldos = signal<Saldo[]>([]);
+  readonly quinielas = signal<Quiniela[]>([]);
+  readonly aportesPorCliente = signal<Record<number, Aporte[]>>({});
   cargando = false;
   errorApi = '';
 
@@ -59,6 +65,8 @@ export class ClientesPage implements OnInit {
     { clave: 'nombre', etiqueta: 'Nombre' },
     { clave: 'telefono', etiqueta: 'Teléfono' },
     { clave: 'fecha_registro', etiqueta: 'Registro', tipo: 'fecha' },
+    { clave: 'quinielas', etiqueta: 'Quinielas jugando (+)', clase: 'acciones', ordenable: false },
+    { clave: 'saldo', etiqueta: 'Saldo', tipo: 'moneda', clase: 'num', ordenable: false },
     { clave: 'acciones', etiqueta: 'Acciones', clase: 'acciones', ordenable: false },
   ];
 
@@ -72,14 +80,18 @@ export class ClientesPage implements OnInit {
   // Eliminar
   pendiente: Cliente | null = null;
 
-  // Registros asociados (bloquean el borrado del cliente)
-  registrosVisible = false;
+  // Eliminar desde modal
+  eliminarDesdeModal = false;
   registrosCargando = false;
   registrosCliente: Cliente | null = null;
   registrosSaldo: Saldo | null = null;
   registrosMovimientos: Movimiento[] = [];
   registrosAportes: Aporte[] = [];
   erroresRegistros: string[] = [];
+
+  registrosVisible = false;
+  detalleQuinielas: Quiniela[] = [];
+  detalleVisible = false;
 
   ngOnInit(): void {
     this.cargar();
