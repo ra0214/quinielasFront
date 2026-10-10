@@ -144,9 +144,9 @@
   }
   <div class="formulario-grid">
     <div class="campo">
-      <label>Edición <span class="req">*</span></label>
+      <label>NÚMERO <span class="req">*</span></label>
       <select [(ngModel)]="formulario.id_edicion" [disabled]="editandoId !== null">
-        <option [ngValue]="0" disabled>Selecciona una edición…</option>
+        <option [ngValue]="0" disabled>Selecciona un número…</option>
         @for (e of ediciones(); track e.id_edicion) {
           <option [ngValue]="e.id_edicion">{{ e.nombre_edicion }}</option>
         }
@@ -156,7 +156,7 @@
       }
     </div>
     <div class="campo">
-      <label>Variante <span class="req">*</span></label>
+      <label>ANALISTA <span class="req">*</span></label>
       <select [(ngModel)]="formulario.nombre_variante">
         @for (v of variantes; track v) {
           <option [value]="v">{{ v }}</option>
@@ -169,7 +169,7 @@
       <div class="ayuda">Debe ser mayor a 0.</div>
     </div>
     <div class="campo">
-      <label>Monto meta</label>
+      <label>COSTO TOTAL DE LA QUINIELA</label>
       <input type="number" min="0" step="1" [(ngModel)]="formulario.monto_meta" placeholder="Ej. 5000" />
       <div class="ayuda">Puede quedar en 0 si aún no hay meta.</div>
     </div>
