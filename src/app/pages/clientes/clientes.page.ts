@@ -105,11 +105,11 @@ export class ClientesPage implements OnInit {
       saldos: this.saldosSvc.listar(),
       quinielas: this.quinielasSvc.listar()
     }).subscribe({
-      next: ({ clientes, saldos, quinielas, aportes }: any) => {
+      next: ({ clientes, saldos, quinielas}: any) => {
         this.clientes.set(clientes);
         this.saldos.set(saldos);
         this.quinielas.set(quinielas);
-        const map:any={}; for(const a of aportes){ if(!map[a.id_cliente]) map[a.id_cliente]=[]; map[a.id_cliente].push(a);} this.aportesPorCliente.set(map);
+        this.aportesPorCliente.set({});
         this.cargando = false;
       },
       error: (e) => {
