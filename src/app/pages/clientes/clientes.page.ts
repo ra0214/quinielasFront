@@ -279,7 +279,10 @@ export class ClientesPage implements OnInit {
 
   quinielasJugando(c: Cliente): Quiniela[] {
     const list = this.quinielas().filter((q) => q.estado === 'EN_JUEGO');
-    return list;
+    const mapA = this.aportesPorCliente()[c.id_cliente] || [];
+    const ids = new Set(mapA.map((a) => a.id_quiniela));
+    if (ids.size === 0) return [];
+    return list.filter((q) => ids.has(q.id_quiniela));
   }
 
   countQuinielasJugando(c: Cliente): number {
