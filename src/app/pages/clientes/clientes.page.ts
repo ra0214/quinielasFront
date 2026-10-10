@@ -95,7 +95,6 @@ export class ClientesPage implements OnInit {
 
   ngOnInit(): void {
     this.cargar();
-    this.cargarAportesPorCliente();
   }
 
   cargar(): void {
@@ -123,7 +122,6 @@ export class ClientesPage implements OnInit {
   buscar(termino: string): void {
     if (!termino.trim()) {
       this.cargar();
-    this.cargarAportesPorCliente();
       return;
     }
     this.cargando = true;
@@ -171,7 +169,6 @@ export class ClientesPage implements OnInit {
         this.toast.exito(res.message || 'Guardado correctamente');
         this.cerrarModal();
         this.cargar();
-    this.cargarAportesPorCliente();
       },
       error: (e) => {
         this.errorFormulario = e.message;
@@ -192,7 +189,6 @@ export class ClientesPage implements OnInit {
         this.toast.exito(res.message || 'Cliente eliminado');
         this.pendiente = null;
         this.cargar();
-    this.cargarAportesPorCliente();
       },
       error: (e) => {
         this.toast.error(e.message);
@@ -305,4 +301,4 @@ export class ClientesPage implements OnInit {
     this.registrosCliente = null;
   }
 
-  cargarAportesPorCliente() {\n    this.aportesSvc.listar().subscribe({\n      next: (aportes: any[]) => {\n        const map: Record<number, any[]> = {};\n        for (const a of aportes) {\n          if (!map[a.id_cliente]) map[a.id_cliente] = [];\n          map[a.id_cliente].push(a);\n        }\n        this.aportesPorCliente.set(map);\n      },\n      error: () => {\n        this.aportesPorCliente.set({});\n      },\n    });\n  }\n\n}
+}
