@@ -26,7 +26,7 @@ export interface EdicionRequest {
 
 export type EstadoQuiniela = 'EN_JUEGO' | 'COMPLETADA' | 'CANCELADA';
 
-export type TipoQuiniela = 'DIRECTA' | 'DIRECTA_EN_COPERACHA' | 'DESARROLLO';
+export type TipoQuiniela = 'DIRECTA' | 'DESARROLLO';
 
 export type TipoPagoQuiniela = 'CONTADO' | 'PAGO_PARCIAL' | 'A_CREDITO';
 
@@ -43,7 +43,6 @@ export interface Quiniela {
   tipo_quiniela?: TipoQuiniela | string;
   id_cliente?: number | null;
   monto_pagado?: number;
-  cantidad_boletos?: number;
   analista?: string;
   tipo_pago?: TipoPagoQuiniela | string;
   canal_venta?: CanalVenta | string;
@@ -59,7 +58,6 @@ export interface QuinielaRequest {
   tipo_quiniela?: string;
   id_cliente?: number | null;
   monto_pagado?: number;
-  cantidad_boletos?: number;
   analista?: string;
   tipo_pago?: string;
   canal_venta?: string;
@@ -126,14 +124,12 @@ export interface Premio {
   monto_bruto: number;
   porcentaje_retencion: number;
   monto_neto: number;
-  premio_por_boleto?: number;
   fecha_registro: string;
 }
 
 export interface PremioRequest {
   id_quiniela: number;
   monto_bruto: number;
-  premio_por_boleto?: number;
 }
 
 export interface ParticipanteReparto {

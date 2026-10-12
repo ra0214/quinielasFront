@@ -42,9 +42,6 @@
   </ng-template>
   <ng-template celda="tipo" let-fila>
     <span title="{{ fila.tipo_quiniela }}">{{ etiquetaTipo(fila.tipo_quiniela ?? '') }}</span>
-    @if (fila.cantidad_boletos > 1) {
-      <span class="ayuda"> · {{ fila.cantidad_boletos }} b</span>
-    }
   </ng-template>
   <ng-template celda="canal_venta" let-fila>
     <span [class]="fila.canal_venta === 'VENTANILLA' ? 'texto-amarillo' : 'texto-verde'">
@@ -202,13 +199,6 @@
       <input type="number" min="0" step="0.5" [(ngModel)]="formulario.precio" placeholder="Ej. 50" />
       <div class="ayuda">Debe ser mayor a 0.</div>
     </div>
-    @if (formulario.tipo_quiniela === 'DIRECTA_EN_COPERACHA') {
-      <div class="campo">
-        <label>Cantidad de boletos <span class="req">*</span></label>
-        <input type="number" min="1" step="1" [(ngModel)]="formulario.cantidad_boletos" placeholder="1" />
-        <div class="ayuda">Total a cobrar: {{ moneda(totalCobrarForm(formulario)) }}.</div>
-      </div>
-    }
     <div class="campo">
       <label>COSTO TOTAL DE LA QUINIELA</label>
       <input type="number" min="0" step="1" [(ngModel)]="formulario.monto_meta" placeholder="Ej. 5000" />

@@ -33,8 +33,7 @@ interface ProgresoQuiniela {
 interface FormularioQuiniela {
   id_edicion: number;
   nombre_variante: string;
-  precio: number | null; // precio por boleto (DIRECTA/COPERACHA) o costo total (DESARROLLO)
-  cantidad_boletos: number | null; // solo DIRECTA_EN_COPERACHA
+  precio: number | null; // precio por boleto (DIRECTA) o costo total (DESARROLLO)
   monto_meta: number | null;
   fecha_limite: string; // valor de input datetime-local
   estado: string;
@@ -82,7 +81,6 @@ export class QuinielasPage implements OnInit {
   readonly estados: EstadoQuiniela[] = ['EN_JUEGO', 'COMPLETADA', 'CANCELADA'];
   readonly tiposQuiniela: { valor: TipoQuiniela; etiqueta: string }[] = [
     { valor: 'DIRECTA', etiqueta: 'Directa' },
-    { valor: 'DIRECTA_EN_COPERACHA', etiqueta: 'Directa en coperacha' },
     { valor: 'DESARROLLO', etiqueta: 'Desarrollo' },
   ];
   readonly tiposPago: { valor: TipoPagoQuiniela; etiqueta: string }[] = [
@@ -133,10 +131,6 @@ export class QuinielasPage implements OnInit {
   // Modal registrar aporte (misma ventana)
   aporteVisible = false;
 
-
-  tipoQuiniela: 'DIRECTA' | 'DIRECTA_EN_COPERACHA' | 'DESARROLLO' = 'DIRECTA';
-  clienteSeleccionado: number = 0;
-  cantidadBoletos: number | null = null;
   aportandoQuiniela: QuinielaVista | null = null;
   aporteForm: { id_cliente: number; monto: number | null } = { id_cliente: 0, monto: null };
   guardandoAporte = false;
@@ -153,7 +147,6 @@ export class QuinielasPage implements OnInit {
       id_edicion: primera ? primera.id_edicion : 0,
       nombre_variante: 'Neto',
       precio: null,
-      cantidad_boletos: 1,
       monto_meta: null,
       fecha_limite: '',
       estado: 'EN_JUEGO',
@@ -271,18 +264,10 @@ export class QuinielasPage implements OnInit {
 
   /** Total a cobrar al cliente según el tipo de quiniela. */
   totalCobrar(q: Quiniela): number {
-    const precio = q.precio || 0;
-    if (q.tipo_quiniela === 'DIRECTA_EN_COPERACHA') {
-      const cant = q.cantidad_boletos || 1;
-      return precio * cant;
-    }
-    return precio;
+    return q.precio || 0;
   }
 
   totalCobrarForm(f: FormularioQuiniela): number {
-    if (f.tipo_quiniela === 'DIRECTA_EN_COPERACHA') {
-      return (f.precio ?? 0) * (f.cantidad_boletos ?? 1);
-    }
     return f.precio ?? 0;
   }
 
@@ -290,8 +275,6 @@ export class QuinielasPage implements OnInit {
     switch (valor) {
       case 'DIRECTA':
         return 'Directa';
-      case 'DIRECTA_EN_COPERACHA':
-        return 'Directa en coperacha';
       case 'DESARROLLO':
         return 'Desarrollo';
       default:
@@ -348,7 +331,6 @@ export class QuinielasPage implements OnInit {
       id_edicion: q.id_edicion,
       nombre_variante: q.nombre_variante,
       precio: q.precio,
-      cantidad_boletos: q.cantidad_boletos || 1,
       monto_meta: q.monto_meta,
       fecha_limite: deRfc3339AInput(q.fecha_limite),
       estado: q.estado,
@@ -385,10 +367,6 @@ export class QuinielasPage implements OnInit {
     }
     if (f.precio == null || f.precio <= 0) {
       this.errorFormulario = 'El precio es obligatorio y debe ser mayor a 0.';
-      return;
-    }
-    if (f.tipo_quiniela === 'DIRECTA_EN_COPERACHA' && (!f.cantidad_boletos || f.cantidad_boletos < 1)) {
-      this.errorFormulario = 'La cantidad de boletos debe ser al menos 1.';
       return;
     }
     const total = this.totalCobrarForm(f);
@@ -439,7 +417,6 @@ export class QuinielasPage implements OnInit {
       tipo_quiniela: f.tipo_quiniela,
       id_cliente: f.id_cliente,
       monto_pagado: montoPagado,
-      cantidad_boletos: f.tipo_quiniela === 'DIRECTA_EN_COPERACHA' ? (f.cantidad_boletos ?? 1) : 0,
       analista: f.nombre_variante,
       tipo_pago: f.tipo_pago,
       canal_venta: f.canal_venta,

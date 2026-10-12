@@ -19,14 +19,9 @@ export class PremiosService {
     return this.api.post<{ message: string; premio: Premio }>('/premios', premio);
   }
 
-  actualizar(
-    id: number,
-    montoBruto: number,
-    premioPorBoleto?: number
-  ): Observable<{ message: string; premio: Premio }> {
+  actualizar(id: number, montoBruto: number): Observable<{ message: string; premio: Premio }> {
     return this.api.put<{ message: string; premio: Premio }>(`/premios/${id}`, {
       monto_bruto: montoBruto,
-      premio_por_boleto: premioPorBoleto ?? 0,
     });
   }
 
