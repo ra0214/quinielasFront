@@ -39,7 +39,8 @@ interface FormularioQuiniela {
   tipo_quiniela: TipoQuiniela;
   id_cliente: number; // 0 = sin seleccionar
   tipo_pago: TipoPagoQuiniela;
-  monto_pagado: number | null; // pago de apertura / parcial
+  monto_pagado: number | null; // pago de apertura / parcial (solo DIRECTA)
+  primerAporte: number | null; // aporte inicial del creador (solo DESARROLLO, al crear)
   canal_venta: CanalVenta;
 }
 
@@ -151,6 +152,7 @@ export class QuinielasPage implements OnInit {
       id_cliente: primerCliente,
       tipo_pago: 'CONTADO',
       monto_pagado: null,
+      primerAporte: null,
       canal_venta: 'EN_LINEA',
     };
   }
@@ -285,9 +287,23 @@ export class QuinielasPage implements OnInit {
 
   /** Estado de pago mostrado en la tabla. */
   estadoPago(q: Quiniela): { texto: string; clase: string } {
-    const pagado = q.monto_pagado || 0;
     const total = this.totalCobrar(q);
-    if (!q.id_cliente || total === 0) {
+    if (total === 0) {
+      return { texto: '—', clase: 'saldo-cero' };
+    }
+    // DESARROLLO: el avance se mide por la recaudación de aportes.
+    if (q.tipo_quiniela === 'DESARROLLO') {
+      const recaudado = this.progreso(q.id_quiniela)?.recaudado ?? 0;
+      if (recaudado <= 0) {
+        return { texto: 'Sin aportes', clase: 'texto-rojo' };
+      }
+      if (recaudado >= total) {
+        return { texto: 'Completada', clase: 'texto-verde' };
+      }
+      return { texto: `Recaudado ${this.moneda(recaudado)}/${this.moneda(total)}`, clase: 'texto-amarillo' };
+    }
+    const pagado = q.monto_pagado || 0;
+    if (!q.id_cliente) {
       return { texto: '—', clase: 'saldo-cero' };
     }
     if (pagado <= 0) {
@@ -301,6 +317,10 @@ export class QuinielasPage implements OnInit {
 
   refrescarMontoPagado(): void {
     const f = this.formulario;
+    if (f.tipo_quiniela === 'DESARROLLO') {
+      f.monto_pagado = null;
+      return;
+    }
     const total = this.totalCobrarForm(f);
     if (f.tipo_pago === 'CONTADO') {
       f.monto_pagado = total;
@@ -334,6 +354,7 @@ export class QuinielasPage implements OnInit {
       id_cliente: q.id_cliente ?? 0,
       tipo_pago: (q.tipo_pago as TipoPagoQuiniela) || 'A_CREDITO',
       monto_pagado: q.monto_pagado ?? null,
+      primerAporte: null,
       canal_venta: (q.canal_venta as CanalVenta) || 'EN_LINEA',
     };
     this.errorFormulario = '';
@@ -370,8 +391,15 @@ export class QuinielasPage implements OnInit {
       this.errorFormulario = 'Selecciona el cliente que paga la quiniela.';
       return;
     }
+    const esDesarrollo = f.tipo_quiniela === 'DESARROLLO';
     let montoPagado = 0;
-    if (f.tipo_pago === 'CONTADO') {
+    if (esDesarrollo) {
+      // DESARROLLO se fondea con aportes: no hay cobro directo.
+      if (f.primerAporte != null && (f.primerAporte < 0 || f.primerAporte > total)) {
+        this.errorFormulario = 'El primer aporte debe estar entre 0 y el costo total de la quiniela.';
+        return;
+      }
+    } else if (f.tipo_pago === 'CONTADO') {
       montoPagado = total;
     } else if (f.tipo_pago === 'PAGO_PARCIAL') {
       if (f.monto_pagado == null || f.monto_pagado <= 0) {
@@ -409,11 +437,13 @@ export class QuinielasPage implements OnInit {
       id_cliente: f.id_cliente,
       monto_pagado: montoPagado,
       analista: f.nombre_variante,
-      tipo_pago: f.tipo_pago,
+      tipo_pago: esDesarrollo ? 'A_CREDITO' : f.tipo_pago,
       canal_venta: f.canal_venta,
     };
     this.guardando = true;
     this.errorFormulario = '';
+
+    const primerAporte = esDesarrollo && this.editandoId === null ? (f.primerAporte ?? 0) : 0;
 
     // POST sin estado: la quiniela nace EN_JUEGO.
     const peticion =
@@ -423,6 +453,22 @@ export class QuinielasPage implements OnInit {
 
     peticion.subscribe({
       next: (res) => {
+        const creada = (res as { quiniela?: Quiniela }).quiniela;
+        // En DESARROLLO el creador registra su aporte inicial (suma a la recaudación).
+        if (primerAporte > 0 && creada) {
+          this.aportes.crear({ id_cliente: f.id_cliente, id_quiniela: creada.id_quiniela, monto: primerAporte }).subscribe({
+            next: () => {
+              this.toast.exito('Quiniela creada con su aporte inicial');
+              this.cerrarModal();
+              this.cargar();
+            },
+            error: (e) => {
+              this.errorFormulario = `La quiniela se creó, pero el aporte inicial falló: ${e.message}`;
+              this.toast.error('La quiniela se creó, pero el aporte inicial falló.');
+            },
+          });
+          return;
+        }
         this.toast.exito(res.message || 'Quiniela guardada');
         this.cerrarModal();
         this.cargar();
