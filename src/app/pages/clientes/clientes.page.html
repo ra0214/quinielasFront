@@ -176,11 +176,10 @@
           <div class="fila-registro">
             <div class="fila-registro-principal">
               <strong>Quiniela #{{ q.id_quiniela }} · {{ q.nombre_variante }}</strong>
-              <span>{{ moneda(q.precio) }}</span>
+              <span>{{ moneda(q.monto_meta) }}</span>
             </div>
             <div class="fila-registro-secundaria">
               <span>Estado: {{ q.estado }}</span>
-              <span>Meta: {{ moneda(q.monto_meta) }}</span>
               <span>Límite: {{ fecha(q.fecha_limite) }}</span>
             </div>
           </div>

@@ -188,21 +188,9 @@
       </select>
     </div>
     <div class="campo">
-      <label>
-        @if (formulario.tipo_quiniela === 'DESARROLLO') {
-          Costo total del boleto
-        } @else {
-          Precio por boleto
-        }
-        <span class="req">*</span>
-      </label>
-      <input type="number" min="0" step="0.5" [(ngModel)]="formulario.precio" placeholder="Ej. 50" />
-      <div class="ayuda">Debe ser mayor a 0.</div>
-    </div>
-    <div class="campo">
-      <label>COSTO TOTAL DE LA QUINIELA</label>
-      <input type="number" min="0" step="1" [(ngModel)]="formulario.monto_meta" placeholder="Ej. 5000" />
-      <div class="ayuda">Puede quedar en 0 si aún no hay meta.</div>
+      <label>COSTO TOTAL DE LA QUINIELA <span class="req">*</span></label>
+      <input type="number" min="0.01" step="0.01" [(ngModel)]="formulario.monto_meta" placeholder="Ej. 5000" />
+      <div class="ayuda">Monto total a cobrar. Debe ser mayor a 0.</div>
     </div>
     <div class="campo">
       <label>CLIENTE <span class="req">*</span></label>
@@ -233,7 +221,14 @@
     </div>
     @if (formulario.tipo_pago === 'PAGO_PARCIAL') {
       <div class="campo">
-        <label>Monto pagado <span class="req">*</span></label>
+        <label>
+          @if (formulario.tipo_quiniela === 'DESARROLLO') {
+            Monto pagado de apertura
+          } @else {
+            Monto pagado
+          }
+          <span class="req">*</span>
+        </label>
         <input type="number" min="0.01" step="0.01" [(ngModel)]="formulario.monto_pagado" placeholder="0.00" />
         <div class="ayuda">Total a cobrar: {{ moneda(totalCobrarForm(formulario)) }}; el resto queda fiado.</div>
       </div>

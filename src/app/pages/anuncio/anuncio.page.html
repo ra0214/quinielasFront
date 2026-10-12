@@ -1,6 +1,6 @@
 <app-encabezado-pagina
   titulo="Anuncio de quinielas"
-  descripcion="Estado público de cada quiniela: precio, fecha límite, recaudación y participantes">
+  descripcion="Estado público de cada quiniela: costo total, fecha límite, recaudación y participantes">
   <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
 </app-encabezado-pagina>
 
@@ -95,16 +95,12 @@
 
         <div class="datos">
           <div class="dato">
-            <span class="muted">Precio del boleto</span>
-            <strong>{{ moneda(q.precio) }}</strong>
+            <span class="muted">Costo total</span>
+            <strong>{{ moneda(q.monto_meta) }}</strong>
           </div>
           <div class="dato">
             <span class="muted">Fecha límite</span>
             <strong>{{ fecha(q.fecha_limite) }}</strong>
-          </div>
-          <div class="dato">
-            <span class="muted">Meta</span>
-            <strong>{{ moneda(q.monto_meta) }}</strong>
           </div>
           <div class="dato">
             <span class="muted">Recaudado</span>

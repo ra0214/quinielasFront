@@ -33,14 +33,13 @@ interface ProgresoQuiniela {
 interface FormularioQuiniela {
   id_edicion: number;
   nombre_variante: string;
-  precio: number | null; // precio por boleto (DIRECTA) o costo total (DESARROLLO)
-  monto_meta: number | null;
+  monto_meta: number | null; // costo total de la quiniela (monto a cobrar)
   fecha_limite: string; // valor de input datetime-local
   estado: string;
   tipo_quiniela: TipoQuiniela;
   id_cliente: number; // 0 = sin seleccionar
   tipo_pago: TipoPagoQuiniela;
-  monto_pagado: number | null; // solo PAGO_PARCIAL
+  monto_pagado: number | null; // pago de apertura / parcial
   canal_venta: CanalVenta;
 }
 
@@ -108,10 +107,9 @@ export class QuinielasPage implements OnInit {
     { clave: 'nombre_edicion', etiqueta: 'NÚMERO' },
     { clave: 'nombre_variante', etiqueta: 'ANALISTA' },
     { clave: 'tipo', etiqueta: 'Tipo', ordenable: false },
-    { clave: 'precio', etiqueta: 'Precio', tipo: 'moneda', clase: 'num' },
     { clave: 'canal_venta', etiqueta: 'Canal', ordenable: false },
     { clave: 'pago', etiqueta: 'Estado de pago', ordenable: false },
-    { clave: 'monto_meta', etiqueta: 'Meta', tipo: 'moneda', clase: 'num' },
+    { clave: 'monto_meta', etiqueta: 'Costo total', tipo: 'moneda', clase: 'num' },
     { clave: 'fecha_limite', etiqueta: 'Fecha límite', tipo: 'fecha' },
     { clave: 'progreso', etiqueta: 'Progreso', ordenable: false },
     { clave: 'estado', etiqueta: 'Estado' },
@@ -146,7 +144,6 @@ export class QuinielasPage implements OnInit {
     return {
       id_edicion: primera ? primera.id_edicion : 0,
       nombre_variante: 'Neto',
-      precio: null,
       monto_meta: null,
       fecha_limite: '',
       estado: 'EN_JUEGO',
@@ -262,13 +259,13 @@ export class QuinielasPage implements OnInit {
     return formatoMoneda(v);
   }
 
-  /** Total a cobrar al cliente según el tipo de quiniela. */
+  /** Total a cobrar al cliente: el costo total de la quiniela. */
   totalCobrar(q: Quiniela): number {
-    return q.precio || 0;
+    return q.monto_meta || 0;
   }
 
   totalCobrarForm(f: FormularioQuiniela): number {
-    return f.precio ?? 0;
+    return f.monto_meta ?? 0;
   }
 
   etiquetaTipo(valor: string): string {
@@ -330,7 +327,6 @@ export class QuinielasPage implements OnInit {
     this.formulario = {
       id_edicion: q.id_edicion,
       nombre_variante: q.nombre_variante,
-      precio: q.precio,
       monto_meta: q.monto_meta,
       fecha_limite: deRfc3339AInput(q.fecha_limite),
       estado: q.estado,
@@ -365,8 +361,8 @@ export class QuinielasPage implements OnInit {
       this.errorFormulario = 'Selecciona el tipo de quiniela.';
       return;
     }
-    if (f.precio == null || f.precio <= 0) {
-      this.errorFormulario = 'El precio es obligatorio y debe ser mayor a 0.';
+    if (f.monto_meta == null || f.monto_meta <= 0) {
+      this.errorFormulario = 'El costo total de la quiniela es obligatorio y debe ser mayor a 0.';
       return;
     }
     const total = this.totalCobrarForm(f);
@@ -388,10 +384,6 @@ export class QuinielasPage implements OnInit {
       }
       montoPagado = f.monto_pagado;
     }
-    if (f.monto_meta != null && f.monto_meta < 0) {
-      this.errorFormulario = 'El monto meta no puede ser negativo.';
-      return;
-    }
     if (!f.fecha_limite) {
       this.errorFormulario = 'La fecha y hora límite es obligatoria.';
       return;
@@ -411,7 +403,6 @@ export class QuinielasPage implements OnInit {
     const cuerpo: QuinielaRequest = {
       id_edicion: f.id_edicion,
       nombre_variante: f.nombre_variante,
-      precio: f.precio ?? 0,
       monto_meta: f.monto_meta ?? 0,
       fecha_limite: aRfc3339(f.fecha_limite),
       tipo_quiniela: f.tipo_quiniela,

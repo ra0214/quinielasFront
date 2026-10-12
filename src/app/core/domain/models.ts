@@ -36,7 +36,6 @@ export interface Quiniela {
   id_quiniela: number;
   id_edicion: number;
   nombre_variante: string;
-  precio: number;
   monto_meta: number;
   fecha_limite: string;
   estado: EstadoQuiniela | string;
@@ -51,7 +50,6 @@ export interface Quiniela {
 export interface QuinielaRequest {
   id_edicion: number;
   nombre_variante: string;
-  precio: number;
   monto_meta: number;
   fecha_limite: string; // RFC3339 estricto
   estado?: string;

@@ -22,7 +22,6 @@ interface AnuncioQuiniela {
   id_quiniela: number;
   variante: string;
   edicion: string;
-  precio: number;
   monto_meta: number;
   fecha_limite: string;
   estado: string;
@@ -142,7 +141,6 @@ export class AnuncioPage implements OnInit {
       id_quiniela: q.id_quiniela,
       variante: q.nombre_variante,
       edicion: nombresEdicion.get(q.id_edicion) ?? `Edición #${q.id_edicion}`,
-      precio: q.precio,
       monto_meta: q.monto_meta,
       fecha_limite: q.fecha_limite,
       estado: q.estado,
