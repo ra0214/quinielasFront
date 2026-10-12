@@ -217,7 +217,58 @@
       </select>
       <div class="ayuda">Se refleja en la descripción de los movimientos.</div>
     </div>
-    @if (formulario.tipo_quiniela === 'DIRECTA') {
+    @if (formulario.tipo_quiniela === 'DESARROLLO') {
+      @if (editandoId === null) {
+        <div class="campo">
+          <label>Primer aporte</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="formulario.primerAporte"
+            (ngModelChange)="refrescarMontoPagado()"
+            placeholder="0.00"
+          />
+          <div class="ayuda">
+            Aporte inicial del creador; suma a la recaudación. Tope: {{ moneda(totalCobrarForm(formulario)) }}.
+          </div>
+        </div>
+        <div class="campo">
+          <label>Estado / Método de pago <span class="req">*</span></label>
+          <select [(ngModel)]="formulario.tipo_pago" (ngModelChange)="refrescarMontoPagado()">
+            @for (tp of tiposPago; track tp.valor) {
+              <option [value]="tp.valor">{{ tp.etiqueta }}</option>
+            }
+          </select>
+          <div class="ayuda">Aplica al primer aporte del creador.</div>
+        </div>
+        @if (formulario.tipo_pago === 'PAGO_PARCIAL') {
+          <div class="campo">
+            <label>Monto pagado <span class="req">*</span></label>
+            <input type="number" min="0.01" step="0.01" [(ngModel)]="formulario.monto_pagado" placeholder="0.00" />
+            <div class="ayuda">
+              Del primer aporte ({{ moneda(formulario.primerAporte ?? 0) }}); el resto queda fiado al cliente.
+            </div>
+          </div>
+        } @else if (formulario.tipo_pago === 'CONTADO') {
+          <div class="campo">
+            <label>Monto pagado</label>
+            <input type="number" [ngModel]="formulario.primerAporte ?? 0" disabled />
+            <div class="ayuda">El primer aporte se paga por completo.</div>
+          </div>
+        } @else {
+          <div class="campo">
+            <label>Monto pagado</label>
+            <input type="number" [ngModel]="0" disabled />
+            <div class="ayuda">El primer aporte queda fiado al cliente.</div>
+          </div>
+        }
+      } @else {
+        <div class="campo">
+          <div class="ayuda">La recaudación de esta quiniela se registra desde la pantalla Aportes.</div>
+        </div>
+      }
+    } @else {
       <div class="campo">
         <label>Estado / Método de pago <span class="req">*</span></label>
         <select [(ngModel)]="formulario.tipo_pago" (ngModelChange)="refrescarMontoPagado()">
@@ -245,16 +296,6 @@
           <div class="ayuda">Queda pendiente: {{ moneda(totalCobrarForm(formulario)) }}.</div>
         </div>
       }
-    } @else if (editandoId === null) {
-      <div class="campo">
-        <label>Primer aporte</label>
-        <input type="number" min="0" step="0.01" [(ngModel)]="formulario.primerAporte" placeholder="0.00" />
-        <div class="ayuda">Aporte inicial del creador (opcional). Se suma a la recaudación de la quiniela.</div>
-      </div>
-    } @else {
-      <div class="campo">
-        <div class="ayuda">Los aportes de esta quiniela se administran desde la pantalla de Aportes.</div>
-      </div>
     }
     <div class="campo">
       <label>Fecha y hora límite <span class="req">*</span></label>

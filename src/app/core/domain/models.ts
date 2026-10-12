@@ -88,6 +88,8 @@ export interface AporteRequest {
   id_cliente: number;
   id_quiniela: number;
   monto: number;
+  /** Cuánto del aporte se pagó; si se omite, se asume pagado por completo. */
+  monto_pagado?: number;
 }
 
 export type TipoMovimiento =
