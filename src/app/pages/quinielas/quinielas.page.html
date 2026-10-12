@@ -46,6 +46,11 @@
       <span class="ayuda"> · {{ fila.cantidad_boletos }} b</span>
     }
   </ng-template>
+  <ng-template celda="canal_venta" let-fila>
+    <span [class]="fila.canal_venta === 'VENTANILLA' ? 'texto-amarillo' : 'texto-verde'">
+      {{ etiquetaCanal(fila.canal_venta) }}
+    </span>
+  </ng-template>
   <ng-template celda="pago" let-fila>
     @if (fila.id_cliente) {
       <span [class]="estadoPago(fila).clase">{{ estadoPago(fila).texto }}</span>
@@ -210,7 +215,7 @@
       <div class="ayuda">Puede quedar en 0 si aún no hay meta.</div>
     </div>
     <div class="campo">
-      <label>Cliente <span class="req">*</span></label>
+      <label>CLIENTE <span class="req">*</span></label>
       <select [(ngModel)]="formulario.id_cliente">
         <option [ngValue]="0" disabled>— Selecciona un cliente —</option>
         @for (c of clientes(); track c.id_cliente) {
@@ -218,6 +223,15 @@
         }
       </select>
       <div class="ayuda">El cobro afecta el saldo de este cliente.</div>
+    </div>
+    <div class="campo">
+      <label>Canal de venta <span class="req">*</span></label>
+      <select [(ngModel)]="formulario.canal_venta">
+        @for (c of canalesVenta; track c.valor) {
+          <option [value]="c.valor">{{ c.etiqueta }}</option>
+        }
+      </select>
+      <div class="ayuda">Se refleja en la descripción de los movimientos.</div>
     </div>
     <div class="campo">
       <label>Estado / Método de pago <span class="req">*</span></label>

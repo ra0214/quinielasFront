@@ -35,6 +35,13 @@
   <ng-template celda="monto_neto" let-fila>
     <span class="texto-verde">{{ moneda(fila.monto_neto) }}</span>
   </ng-template>
+  <ng-template celda="premio_por_boleto" let-fila>
+    @if (fila.premio_por_boleto) {
+      <span class="texto-verde">{{ moneda(fila.premio_por_boleto) }}</span>
+    } @else {
+      <span class="saldo-cero">—</span>
+    }
+  </ng-template>
   <ng-template celda="acciones" let-fila>
     <button
       class="btn btn-mini btn-secundario"
@@ -69,10 +76,12 @@
   @if (errorFormulario) {
     <div class="aviso aviso-error">{{ errorFormulario }}</div>
   }
-  <div class="aviso aviso-info">
-    Se descontará 7% de retención (ISLR). Si ya existe un premio para esta quiniela se
-    sobreescribe.
-  </div>
+  @if (!esCoperachaForm) {
+    <div class="aviso aviso-info">
+      Se descontará 7% de retención (ISLR). Si ya existe un premio para esta quiniela se
+      sobreescribe.
+    </div>
+  }
 
   <div class="campo">
     <label>Quiniela <span class="req">*</span></label>
@@ -83,16 +92,42 @@
       }
     </select>
   </div>
-  <div class="campo">
-    <label>Monto bruto <span class="req">*</span></label>
-    <input
-      type="number"
-      step="0.01"
-      min="0.01"
-      [(ngModel)]="formulario.monto_bruto"
-      placeholder="0.00" />
-    <div class="ayuda">Debe ser mayor a 0. El monto neto (93%) se calcula automáticamente.</div>
-  </div>
+
+  @if (esCoperachaForm) {
+    <div class="aviso aviso-info">
+      Quiniela <strong>Directa en coperacha</strong>: cada jugador recibe el mismo premio
+      por boleto, sin retención. Cantidad de boletos: {{ cantidadBoletosForm }}.
+    </div>
+    <div class="campo">
+      <label>Premio por boleto <span class="req">*</span></label>
+      <input
+        type="number"
+        step="0.01"
+        min="0.01"
+        [(ngModel)]="formulario.premio_por_boleto"
+        placeholder="0.00" />
+      <div class="ayuda">
+        Cada jugador recibe este monto. Total nominal: premio × {{ cantidadBoletosForm }} boletos.
+      </div>
+    </div>
+  } @else {
+    @if (esDirectaForm) {
+      <div class="aviso aviso-info">
+        Quiniela <strong>Directa</strong>: el premio completo (menos 7% de retención)
+        se abona al comprador.
+      </div>
+    }
+    <div class="campo">
+      <label>Monto bruto <span class="req">*</span></label>
+      <input
+        type="number"
+        step="0.01"
+        min="0.01"
+        [(ngModel)]="formulario.monto_bruto"
+        placeholder="0.00" />
+      <div class="ayuda">Debe ser mayor a 0. El monto neto (93%) se calcula automáticamente.</div>
+    </div>
+  }
 
   <div pie>
     <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>

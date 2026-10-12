@@ -55,6 +55,7 @@ export class PremiosPage implements OnInit {
   readonly columnas: ColumnaTabla[] = [
     { clave: 'nombre_quiniela', etiqueta: 'Quiniela' },
     { clave: 'monto_bruto', etiqueta: 'Monto bruto', tipo: 'moneda', clase: 'num' },
+    { clave: 'premio_por_boleto', etiqueta: 'Por boleto', ordenable: false },
     { clave: 'porcentaje_retencion', etiqueta: 'Retención', tipo: 'porcentaje' },
     { clave: 'monto_neto', etiqueta: 'Monto neto', tipo: 'moneda', clase: 'num' },
     { clave: 'fecha_registro', etiqueta: 'Registro', tipo: 'fecha' },
@@ -75,7 +76,7 @@ export class PremiosPage implements OnInit {
   // Modal crear/editar premio
   modalVisible = false;
   editandoPremioId: number | null = null;
-  formulario: PremioRequest = { id_quiniela: 0, monto_bruto: 0 };
+  formulario: PremioRequest = { id_quiniela: 0, monto_bruto: 0, premio_por_boleto: 0 };
   guardando = false;
   errorFormulario = '';
 
@@ -163,6 +164,24 @@ export class PremiosPage implements OnInit {
     return this.mapaQuinielas[id] ?? `Quiniela #${id}`;
   }
 
+  /** Quiniela seleccionada en el formulario (para adaptar el premio por tipo). */
+  get quinielaForm(): Quiniela | undefined {
+    return this.quinielas().find((q) => q.id_quiniela === this.formulario.id_quiniela);
+  }
+
+  get esCoperachaForm(): boolean {
+    return this.quinielaForm?.tipo_quiniela === 'DIRECTA_EN_COPERACHA';
+  }
+
+  get esDirectaForm(): boolean {
+    return this.quinielaForm?.tipo_quiniela === 'DIRECTA';
+  }
+
+  get cantidadBoletosForm(): number {
+    const cant = this.quinielaForm?.cantidad_boletos || 1;
+    return cant > 0 ? cant : 1;
+  }
+
   moneda(v: number): string {
     return formatoMoneda(v);
   }
@@ -183,7 +202,7 @@ export class PremiosPage implements OnInit {
 
   nuevo(): void {
     this.editandoPremioId = null;
-    this.formulario = { id_quiniela: 0, monto_bruto: 0 };
+    this.formulario = { id_quiniela: 0, monto_bruto: 0, premio_por_boleto: 0 };
     this.errorFormulario = '';
     this.guardando = false;
     this.modalVisible = true;
@@ -191,7 +210,11 @@ export class PremiosPage implements OnInit {
 
   editar(p: Premio): void {
     this.editandoPremioId = p.id_premio;
-    this.formulario = { id_quiniela: p.id_quiniela, monto_bruto: p.monto_bruto };
+    this.formulario = {
+      id_quiniela: p.id_quiniela,
+      monto_bruto: p.monto_bruto,
+      premio_por_boleto: p.premio_por_boleto ?? 0,
+    };
     this.errorFormulario = '';
     this.guardando = false;
     this.modalVisible = true;
@@ -209,19 +232,29 @@ export class PremiosPage implements OnInit {
       this.errorFormulario = 'Selecciona una quiniela.';
       return;
     }
-    if (!(f.monto_bruto > 0)) {
-      this.errorFormulario = 'El monto bruto es obligatorio y debe ser mayor a 0.';
+    if (this.esCoperachaForm) {
+      if (!(f.premio_por_boleto && f.premio_por_boleto > 0)) {
+        this.errorFormulario = 'Indica el premio por boleto (el mismo para cada jugador).';
+        return;
+      }
+      // El total nominal es premio por boleto × cantidad de boletos (lo recalcula el servidor).
+      f.monto_bruto = (f.premio_por_boleto || 0) * this.cantidadBoletosForm;
+    } else if (!(f.monto_bruto > 0)) {
+      this.errorFormulario = 'El monto del premio es obligatorio y debe ser mayor a 0.';
       return;
     }
-
     this.guardando = true;
     this.errorFormulario = '';
-    const cuerpo: PremioRequest = { id_quiniela: f.id_quiniela, monto_bruto: f.monto_bruto };
+    const cuerpo: PremioRequest = {
+      id_quiniela: f.id_quiniela,
+      monto_bruto: f.monto_bruto,
+      premio_por_boleto: this.esCoperachaForm ? f.premio_por_boleto ?? 0 : 0,
+    };
 
     const peticion =
       this.editandoPremioId === null
         ? this.datos.crear(cuerpo)
-        : this.datos.actualizar(this.editandoPremioId, cuerpo.monto_bruto);
+        : this.datos.actualizar(this.editandoPremioId, cuerpo.monto_bruto, f.premio_por_boleto ?? 0);
 
     peticion.subscribe({
       next: (res) => {

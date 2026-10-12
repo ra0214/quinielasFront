@@ -3,7 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
-import { AporteDetalle, Cliente, Edicion, EstadoQuiniela, Quiniela, QuinielaRequest, TipoPagoQuiniela, TipoQuiniela } from '../../core/domain/models';
+import { AporteDetalle, CanalVenta, Cliente, Edicion, EstadoQuiniela, Quiniela, QuinielaRequest, TipoPagoQuiniela, TipoQuiniela } from '../../core/domain/models';
 import { aRfc3339, deRfc3339AInput, formatoMoneda } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
@@ -42,6 +42,7 @@ interface FormularioQuiniela {
   id_cliente: number; // 0 = sin seleccionar
   tipo_pago: TipoPagoQuiniela;
   monto_pagado: number | null; // solo PAGO_PARCIAL
+  canal_venta: CanalVenta;
 }
 
 @Component({
@@ -89,6 +90,10 @@ export class QuinielasPage implements OnInit {
     { valor: 'PAGO_PARCIAL', etiqueta: 'Pago parcial' },
     { valor: 'A_CREDITO', etiqueta: 'A crédito (pendiente)' },
   ];
+  readonly canalesVenta: { valor: CanalVenta; etiqueta: string }[] = [
+    { valor: 'EN_LINEA', etiqueta: 'En línea' },
+    { valor: 'VENTANILLA', etiqueta: 'Ventanilla' },
+  ];
 
   // Filtros
   filtroEstado: 'TODAS' | EstadoQuiniela = 'TODAS';
@@ -106,6 +111,7 @@ export class QuinielasPage implements OnInit {
     { clave: 'nombre_variante', etiqueta: 'ANALISTA' },
     { clave: 'tipo', etiqueta: 'Tipo', ordenable: false },
     { clave: 'precio', etiqueta: 'Precio', tipo: 'moneda', clase: 'num' },
+    { clave: 'canal_venta', etiqueta: 'Canal', ordenable: false },
     { clave: 'pago', etiqueta: 'Estado de pago', ordenable: false },
     { clave: 'monto_meta', etiqueta: 'Meta', tipo: 'moneda', clase: 'num' },
     { clave: 'fecha_limite', etiqueta: 'Fecha límite', tipo: 'fecha' },
@@ -155,6 +161,7 @@ export class QuinielasPage implements OnInit {
       id_cliente: primerCliente,
       tipo_pago: 'CONTADO',
       monto_pagado: null,
+      canal_venta: 'EN_LINEA',
     };
   }
 
@@ -292,6 +299,10 @@ export class QuinielasPage implements OnInit {
     }
   }
 
+  etiquetaCanal(valor: string | undefined): string {
+    return valor === 'VENTANILLA' ? 'Ventanilla' : 'En línea';
+  }
+
   /** Estado de pago mostrado en la tabla. */
   estadoPago(q: Quiniela): { texto: string; clase: string } {
     const pagado = q.monto_pagado || 0;
@@ -345,6 +356,7 @@ export class QuinielasPage implements OnInit {
       id_cliente: q.id_cliente ?? 0,
       tipo_pago: (q.tipo_pago as TipoPagoQuiniela) || 'A_CREDITO',
       monto_pagado: q.monto_pagado ?? null,
+      canal_venta: (q.canal_venta as CanalVenta) || 'EN_LINEA',
     };
     this.errorFormulario = '';
     this.modalVisible = true;
@@ -430,6 +442,7 @@ export class QuinielasPage implements OnInit {
       cantidad_boletos: f.tipo_quiniela === 'DIRECTA_EN_COPERACHA' ? (f.cantidad_boletos ?? 1) : 0,
       analista: f.nombre_variante,
       tipo_pago: f.tipo_pago,
+      canal_venta: f.canal_venta,
     };
     this.guardando = true;
     this.errorFormulario = '';
