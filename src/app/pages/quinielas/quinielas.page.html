@@ -173,7 +173,7 @@
     </div>
     <div class="campo">
       <label>Tipo de quiniela <span class="req">*</span></label>
-      <select [(ngModel)]="formulario.tipo_quiniela" (ngModelChange)="refrescarMontoPagado()">
+      <select [(ngModel)]="formulario.tipo_quiniela" (ngModelChange)="alCambiarTipo()">
         @for (t of tiposQuiniela; track t.valor) {
           <option [value]="t.valor">{{ t.etiqueta }}</option>
         }
@@ -189,7 +189,7 @@
     </div>
     <div class="campo">
       <label>COSTO TOTAL DE LA QUINIELA <span class="req">*</span></label>
-      <input type="number" min="0.01" step="0.01" [(ngModel)]="formulario.monto_meta" placeholder="Ej. 5000" />
+      <input type="number" min="0.01" step="0.01" [(ngModel)]="formulario.monto_meta" (ngModelChange)="alCambiarMeta()" placeholder="Ej. 5000" />
       <div class="ayuda">Monto total a cobrar. Debe ser mayor a 0.</div>
     </div>
     <div class="campo">
@@ -230,7 +230,8 @@
             placeholder="0.00"
           />
           <div class="ayuda">
-            Aporte inicial del creador; suma a la recaudación. Tope: {{ moneda(totalCobrarForm(formulario)) }}.
+            Aporte inicial del creador; suma a la recaudación. Si lo dejas vacío se usa el costo total
+            ({{ moneda(totalCobrarForm(formulario)) }}).
           </div>
         </div>
         <div class="campo">

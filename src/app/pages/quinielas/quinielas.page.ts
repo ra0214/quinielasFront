@@ -191,29 +191,53 @@ export class QuinielasPage implements OnInit {
       this.progresos.set({});
       return;
     }
-    const peticiones = lista.map((q) =>
+
+    // DIRECTA (y cualquier tipo que no se fondee por aportes): el avance es el
+    // pago directo registrado en la propia quiniela. DESARROLLO usa aportes.
+    const mapa: Record<number, ProgresoQuiniela> = {};
+    const desarrollo: Quiniela[] = [];
+    for (const q of lista) {
+      if (q.tipo_quiniela === 'DESARROLLO') {
+        desarrollo.push(q);
+      } else {
+        mapa[q.id_quiniela] = this.calcularProgreso(q.monto_meta, q.monto_pagado || 0);
+      }
+    }
+    this.progresos.set(mapa);
+
+    if (desarrollo.length === 0) {
+      return;
+    }
+
+    const peticiones = desarrollo.map((q) =>
       this.aportes.porQuiniela(q.id_quiniela).pipe(
         catchError(() => of<AporteDetalle[] | null>(null)),
         map((aportes) => {
           if (!aportes) return null;
           const recaudado = aportes.reduce((suma, a) => suma + (a.monto_total_acumulado || 0), 0);
-          const meta = q.monto_meta || 0;
-          const faltante = meta - recaudado;
-          const porcentaje = meta > 0 ? (recaudado / meta) * 100 : 0;
-          return [q.id_quiniela, { recaudado, faltante, porcentaje }] as const;
+          return { id: q.id_quiniela, progreso: this.calcularProgreso(q.monto_meta, recaudado) };
         })
       )
     );
     forkJoin(peticiones).subscribe({
       next: (entradas) => {
-        const mapa: Record<number, ProgresoQuiniela> = {};
+        const actual = { ...this.progresos() };
         for (const entrada of entradas) {
-          if (entrada) mapa[entrada[0]] = entrada[1];
+          if (entrada) actual[entrada.id] = entrada.progreso;
         }
-        this.progresos.set(mapa);
+        this.progresos.set(actual);
       },
       error: () => undefined,
     });
+  }
+
+  private calcularProgreso(meta: number | undefined, recaudado: number): ProgresoQuiniela {
+    const total = meta || 0;
+    return {
+      recaudado,
+      faltante: Math.max(total - recaudado, 0),
+      porcentaje: total > 0 ? (recaudado / total) * 100 : 0,
+    };
   }
 
   /** Filas visibles: se aplican los filtros; la tabla ordena internamente. */
@@ -325,6 +349,25 @@ export class QuinielasPage implements OnInit {
     }
   }
 
+  /** Al cambiar el tipo: en DESARROLLO el primer aporte se precarga con el total. */
+  alCambiarTipo(): void {
+    this.precargarPrimerAporte();
+    this.refrescarMontoPagado();
+  }
+
+  /** Al cambiar el costo total se sincroniza el primer aporte si aún está vacío. */
+  alCambiarMeta(): void {
+    this.precargarPrimerAporte();
+  }
+
+  private precargarPrimerAporte(): void {
+    const f = this.formulario;
+    if (this.editandoId === null && f.tipo_quiniela === 'DESARROLLO' && (f.primerAporte == null || f.primerAporte === 0)) {
+      f.primerAporte = f.monto_meta;
+      this.refrescarMontoPagado();
+    }
+  }
+
   nombreCliente(id: number | null | undefined): string {
     if (!id) return 'Sin cliente';
     const c = this.clientes().find((x) => x.id_cliente === id);
@@ -394,7 +437,8 @@ export class QuinielasPage implements OnInit {
     if (esDesarrollo) {
       // DESARROLLO se fondea con aportes: el del creador es el movimiento
       // inicial. El método de pago define cuánto de ese aporte queda pagado.
-      primerAporte = f.primerAporte ?? 0;
+      // Si no se indica, el primer aporte es el costo total.
+      primerAporte = f.primerAporte ?? total;
       if (primerAporte < 0 || primerAporte > total) {
         this.errorFormulario = 'El primer aporte debe estar entre 0 y el costo total de la quiniela.';
         return;
