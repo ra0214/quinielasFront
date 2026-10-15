@@ -83,3 +83,23 @@ export function deRfc3339AInput(v: string | null | undefined): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+/** Etiqueta legible del tipo de edición (FIN_DE_SEMANA → "Fin de semana"). */
+export function etiquetaTipoEdicion(tipo: string | null | undefined): string {
+  if (tipo === 'MEDIA_SEMANA') return 'Media semana';
+  if (tipo === 'FIN_DE_SEMANA') return 'Fin de semana';
+  return tipo || '';
+}
+
+/** Etiqueta de una quiniela: "Analista - Tipo de edición - Número". */
+export function etiquetaQuiniela(
+  nombreVariante: string | null | undefined,
+  tipoEdicion: string | null | undefined,
+  idQuiniela: number
+): string {
+  const partes = [nombreVariante || `Quiniela #${idQuiniela}`];
+  const tipo = etiquetaTipoEdicion(tipoEdicion);
+  if (tipo) partes.push(tipo);
+  partes.push(String(idQuiniela));
+  return partes.join(' - ');
+}

@@ -143,7 +143,8 @@ export interface Premio {
 
 export interface PremioRequest {
   id_quiniela: number;
-  monto_bruto: number;
+  monto_bruto?: number;
+  monto_neto?: number;
 }
 
 export interface ParticipanteReparto {

@@ -3,8 +3,8 @@ import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Aporte, AporteDetalle, Cliente, METODOS_PAGO, Quiniela } from '../../core/domain/models';
-import { formatoMoneda, formatoPorcentaje } from '../../core/domain/helpers';
+import { Aporte, AporteDetalle, Cliente, Edicion, METODOS_PAGO, Quiniela } from '../../core/domain/models';
+import { etiquetaQuiniela as construirEtiquetaQuiniela, formatoMoneda, formatoPorcentaje } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
@@ -18,6 +18,7 @@ import { ColumnaTabla, TablaComponent } from '../../ui/organisms/tabla/tabla.com
 import { AportesService } from './data-access/aportes.service';
 import { ClientesService } from '../clientes/data-access/clientes.service';
 import { QuinielasService } from '../quinielas/data-access/quinielas.service';
+import { EdicionesService } from '../ediciones/data-access/ediciones.service';
 
 type VistaAportes = 'quiniela' | 'cliente';
 
@@ -62,11 +63,13 @@ export class AportesPage implements OnInit, OnDestroy {
   private readonly datos = inject(AportesService);
   private readonly clientesSvc = inject(ClientesService);
   private readonly quinielasSvc = inject(QuinielasService);
+  private readonly edicionesSvc = inject(EdicionesService);
   private readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
 
   readonly quinielas = signal<Quiniela[]>([]);
   readonly clientes = signal<Cliente[]>([]);
+  readonly ediciones = signal<Edicion[]>([]);
   readonly aportesQuiniela = signal<AporteDetalle[]>([]);
   readonly aportesCliente = signal<Aporte[]>([]);
   private nombres = new Map<number, string>();
@@ -115,6 +118,13 @@ export class AportesPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.quinielasSvc.listar().subscribe({
       next: (lista) => this.quinielas.set(lista),
+      error: (e) => {
+        this.errorApi = e.message;
+      },
+    });
+
+    this.edicionesSvc.listar().subscribe({
+      next: (lista) => this.ediciones.set(lista),
       error: (e) => {
         this.errorApi = e.message;
       },
@@ -247,9 +257,15 @@ export class AportesPage implements OnInit, OnDestroy {
     return this.nombres.get(a.id_cliente) ?? `Cliente #${a.id_cliente}`;
   }
 
+  /** Etiqueta "Analista - Tipo de edición - Número" de una quiniela. */
+  etiquetaQuiniela(q: Quiniela): string {
+    const tipo = this.ediciones().find((e) => e.id_edicion === q.id_edicion)?.tipo_edicion;
+    return construirEtiquetaQuiniela(q.nombre_variante, tipo, q.id_quiniela);
+  }
+
   nombreQuinielaLabel(a: Aporte): string {
     const q = this.quinielas().find((x) => x.id_quiniela === a.id_quiniela);
-    return q ? `${q.nombre_variante} · #${q.id_quiniela} · Edición ${q.id_edicion}` : `Quiniela #${a.id_quiniela}`;
+    return q ? this.etiquetaQuiniela(q) : `Quiniela #${a.id_quiniela}`;
   }
 
   // ===== Crear / editar aporte =====

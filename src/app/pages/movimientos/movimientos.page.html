@@ -78,7 +78,7 @@
       <select [(ngModel)]="formulario.id_quiniela">
         <option [ngValue]="null">— Sin quiniela —</option>
         @for (q of quinielas(); track q.id_quiniela) {
-          <option [ngValue]="q.id_quiniela">{{ q.nombre_variante }} (#{{ q.id_quiniela }})</option>
+          <option [ngValue]="q.id_quiniela">{{ etiquetaQuiniela(q) }}</option>
         }
       </select>
       <div class="ayuda">Déjala vacía si el movimiento no está ligado a una quiniela.</div>

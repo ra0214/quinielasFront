@@ -3,9 +3,10 @@ import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { formatoMoneda } from '../../core/domain/helpers';
+import { etiquetaQuiniela as construirEtiquetaQuiniela, formatoMoneda } from '../../core/domain/helpers';
 import {
   Cliente,
+  Edicion,
   Movimiento,
   MovimientoRequest,
   Quiniela,
@@ -22,6 +23,7 @@ import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
 import { ColumnaTabla, TablaComponent } from '../../ui/organisms/tabla/tabla.component';
 import { ClientesService } from '../clientes/data-access/clientes.service';
 import { QuinielasService } from '../quinielas/data-access/quinielas.service';
+import { EdicionesService } from '../ediciones/data-access/ediciones.service';
 import { SaldosService } from '../saldos/data-access/saldos.service';
 import { MovimientosService } from './data-access/movimientos.service';
 
@@ -52,6 +54,7 @@ export class MovimientosPage implements OnInit, OnDestroy {
   private readonly datos = inject(MovimientosService);
   private readonly clientesDatos = inject(ClientesService);
   private readonly quinielasDatos = inject(QuinielasService);
+  private readonly edicionesDatos = inject(EdicionesService);
   private readonly saldosDatos = inject(SaldosService);
   private readonly toast = inject(ToastService);
   private readonly ruta = inject(ActivatedRoute);
@@ -73,6 +76,7 @@ export class MovimientosPage implements OnInit, OnDestroy {
   readonly movimientos = signal<Movimiento[]>([]);
   readonly clientes = signal<Cliente[]>([]);
   readonly quinielas = signal<Quiniela[]>([]);
+  readonly ediciones = signal<Edicion[]>([]);
   readonly saldosPorCliente = new Map<number, number>();
 
   cargando = false;
@@ -101,6 +105,7 @@ export class MovimientosPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.cargarClientes();
     this.cargarQuinielas();
+    this.cargarEdiciones();
     this.cargarSaldos();
     // /pagos y /retiros llegan con un filtro fijo por tipo.
     this.filtroTipo = (this.ruta.snapshot.data['filtro'] as string) ?? '';
@@ -159,6 +164,19 @@ export class MovimientosPage implements OnInit, OnDestroy {
       next: (lista) => this.quinielas.set(lista),
       error: (e) => this.toast.error(e.message),
     });
+  }
+
+  cargarEdiciones(): void {
+    this.edicionesDatos.listar().subscribe({
+      next: (lista) => this.ediciones.set(lista),
+      error: (e) => this.toast.error(e.message),
+    });
+  }
+
+  /** Etiqueta "Analista - Tipo de edición - Número" de una quiniela. */
+  etiquetaQuiniela(q: Quiniela): string {
+    const tipo = this.ediciones().find((e) => e.id_edicion === q.id_edicion)?.tipo_edicion;
+    return construirEtiquetaQuiniela(q.nombre_variante, tipo, q.id_quiniela);
   }
 
   cargarSaldos(): void {

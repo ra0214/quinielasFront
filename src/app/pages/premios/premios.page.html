@@ -1,15 +1,14 @@
 <app-encabezado-pagina
   titulo="Premios"
-  descripcion="Registro con 7% de retención, reparto proporcional e informe por cliente">
+  descripcion="Registro de premios, reparto proporcional e informe por cliente">
   <button class="btn btn-primario" (click)="nuevo()"><app-icono nombre="agregar" /> Registrar premio</button>
 </app-encabezado-pagina>
 
-<div class="resumen">
-  <app-tarjeta-resumen etiqueta="Total bruto" [valor]="totalBruto" tono="azul" />
-  <app-tarjeta-resumen etiqueta="Total neto (7% retenido)" [valor]="totalNeto" tono="verde" />
-  <app-tarjeta-resumen etiqueta="Retención ISLR" [valor]="totalRetenido" tono="rojo" />
-  <app-tarjeta-resumen etiqueta="Premios registrados" [valor]="totalPremios" />
-</div>
+  <div class="resumen">
+    <app-tarjeta-resumen etiqueta="Total bruto" [valor]="totalBruto" tono="azul" />
+    <app-tarjeta-resumen etiqueta="Total neto" [valor]="totalNeto" tono="verde" />
+    <app-tarjeta-resumen etiqueta="Premios registrados" [valor]="totalPremios" />
+  </div>
 
 <div class="toolbar">
   <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
@@ -30,7 +29,6 @@
   mensajeVacio="Aún no hay premios registrados">
   <ng-template celda="nombre_quiniela" let-fila>
     <strong>{{ fila.nombre_quiniela }}</strong>
-    <app-badge [valor]="'#' + fila.id_quiniela" variante="gris" />
   </ng-template>
   <ng-template celda="monto_neto" let-fila>
     <span class="texto-verde">{{ moneda(fila.monto_neto) }}</span>
@@ -70,8 +68,10 @@
     <div class="aviso aviso-error">{{ errorFormulario }}</div>
   }
   <div class="aviso aviso-info">
-    Se descontará 7% de retención (ISLR). Si ya existe un premio para esta quiniela se
-    sobreescribe.
+    El premio puede registrarse con monto bruto (se descontará 7% de retención) o
+    directamente con monto neto (no se descuenta nada). Ambos campos son
+    opcionales, pero al menos uno debe tener un valor mayor a 0. Si ya existe un
+    premio para esta quiniela, se sobrescribe.
   </div>
 
   <div class="campo">
@@ -79,7 +79,7 @@
     <select [(ngModel)]="formulario.id_quiniela" [disabled]="editandoPremioId !== null">
       <option [ngValue]="0" disabled>— Selecciona una quiniela —</option>
       @for (q of quinielas(); track q.id_quiniela) {
-        <option [ngValue]="q.id_quiniela">{{ q.nombre_variante }} (#{{ q.id_quiniela }})</option>
+        <option [ngValue]="q.id_quiniela">{{ etiquetaQuiniela(q) }}</option>
       }
     </select>
   </div>
@@ -91,15 +91,27 @@
     </div>
   }
   <div class="campo">
-    <label>Monto bruto <span class="req">*</span></label>
+    <label>Monto bruto</label>
     <input
       type="number"
       step="0.01"
       min="0.01"
       [(ngModel)]="formulario.monto_bruto"
       placeholder="0.00" />
-    <div class="ayuda">Debe ser mayor a 0. El monto neto (93%) se calcula automáticamente.</div>
+    <div class="ayuda">Si lo indicas, se descuenta el 7% de retención para obtener el monto neto.</div>
   </div>
+
+  <div class="campo">
+    <label>Monto neto</label>
+    <input
+      type="number"
+      step="0.01"
+      min="0.01"
+      [(ngModel)]="formulario.monto_neto"
+      placeholder="0.00" />
+    <div class="ayuda">Si lo indicas, se usa tal cual, sin descuento de retención.</div>
+  </div>
+  <div class="ayuda">Ambos campos son opcionales, pero debes indicar al menos uno.</div>
 
   <div pie>
     <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>

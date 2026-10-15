@@ -2,7 +2,7 @@ import { IconoComponent } from '../../ui/atoms/icono/icono.component';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Edicion, EdicionRequest } from '../../core/domain/models';
-import { aRfc3339, deRfc3339AInput, formatoFecha } from '../../core/domain/helpers';
+import { aRfc3339, deRfc3339AInput, etiquetaTipoEdicion, formatoFecha } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
 import { ModalComponent } from '../../ui/molecules/modal/modal.component';
@@ -88,9 +88,7 @@ export class EdicionesPage implements OnInit {
   }
 
   etiquetaTipo(tipo: string): string {
-    if (tipo === 'MEDIA_SEMANA') return 'Media semana';
-    if (tipo === 'FIN_DE_SEMANA') return 'Fin de semana';
-    return tipo || '—';
+    return etiquetaTipoEdicion(tipo) || '—';
   }
 
   fecha(v: string): string {

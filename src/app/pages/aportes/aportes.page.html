@@ -21,7 +21,7 @@
         <option [ngValue]="null" disabled>— Selecciona una quiniela —</option>
         @for (q of quinielas(); track q.id_quiniela) {
           <option [ngValue]="q.id_quiniela">
-            {{ q.nombre_variante }} · #{{ q.id_quiniela }} · Edición {{ q.id_edicion }}
+            {{ etiquetaQuiniela(q) }}
           </option>
         }
       </select>
@@ -169,7 +169,7 @@
         <option [ngValue]="null" disabled>— Selecciona una quiniela —</option>
         @for (q of quinielas(); track q.id_quiniela) {
           <option [ngValue]="q.id_quiniela">
-            {{ q.nombre_variante }} · #{{ q.id_quiniela }} · Edición {{ q.id_edicion }}
+            {{ etiquetaQuiniela(q) }}
           </option>
         }
       </select>

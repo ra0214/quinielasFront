@@ -3,8 +3,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
-import { formatoFecha, formatoMoneda, formatoPorcentaje } from '../../core/domain/helpers';
-import { ParticipanteReparto, Premio, PremioRequest, Quiniela, RepartoPremio } from '../../core/domain/models';
+import { etiquetaQuiniela as construirEtiquetaQuiniela, formatoFecha, formatoMoneda, formatoPorcentaje } from '../../core/domain/helpers';
+import { Edicion, ParticipanteReparto, Premio, PremioRequest, Quiniela, RepartoPremio } from '../../core/domain/models';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
@@ -15,6 +15,7 @@ import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
 import { ColumnaTabla, TablaComponent } from '../../ui/organisms/tabla/tabla.component';
 import { SaldosService } from '../saldos/data-access/saldos.service';
 import { QuinielasService } from '../quinielas/data-access/quinielas.service';
+import { EdicionesService } from '../ediciones/data-access/ediciones.service';
 import { PremiosService } from './data-access/premios.service';
 
 /** Premio enriquecido con el nombre de la quiniela para mostrar y ordenar la tabla. */
@@ -42,12 +43,14 @@ interface PremioVista extends Premio {
 export class PremiosPage implements OnInit {
   private readonly datos = inject(PremiosService);
   private readonly quinielasDatos = inject(QuinielasService);
+  private readonly edicionesDatos = inject(EdicionesService);
   private readonly saldosDatos = inject(SaldosService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
 
   readonly premios = signal<Premio[]>([]);
   readonly quinielas = signal<Quiniela[]>([]);
+  readonly ediciones = signal<Edicion[]>([]);
 
   cargando = false;
   errorApi = '';
@@ -75,7 +78,7 @@ export class PremiosPage implements OnInit {
   // Modal crear/editar premio
   modalVisible = false;
   editandoPremioId: number | null = null;
-  formulario: PremioRequest = { id_quiniela: 0, monto_bruto: 0 };
+  formulario: PremioRequest = { id_quiniela: 0, monto_bruto: undefined, monto_neto: undefined };
   guardando = false;
   errorFormulario = '';
 
@@ -103,12 +106,27 @@ export class PremiosPage implements OnInit {
   ngOnInit(): void {
     this.cargar();
     this.cargarQuinielas();
+    this.cargarEdiciones();
+  }
+
+  get mapaTiposEdicion(): Record<number, string> {
+    const mapa: Record<number, string> = {};
+    for (const e of this.ediciones()) mapa[e.id_edicion] = e.tipo_edicion;
+    return mapa;
   }
 
   get mapaQuinielas(): Record<number, string> {
+    const tipos = this.mapaTiposEdicion;
     const mapa: Record<number, string> = {};
-    for (const q of this.quinielas()) mapa[q.id_quiniela] = q.nombre_variante;
+    for (const q of this.quinielas()) {
+      mapa[q.id_quiniela] = construirEtiquetaQuiniela(q.nombre_variante, tipos[q.id_edicion], q.id_quiniela);
+    }
     return mapa;
+  }
+
+  /** Etiqueta "Analista - Tipo de edición - Número" de una quiniela. */
+  etiquetaQuiniela(q: Quiniela): string {
+    return construirEtiquetaQuiniela(q.nombre_variante, this.mapaTiposEdicion[q.id_edicion], q.id_quiniela);
   }
 
   get lista(): PremioVista[] {
@@ -124,12 +142,6 @@ export class PremiosPage implements OnInit {
 
   get totalNeto(): string {
     return formatoMoneda(this.premios().reduce((s, p) => s + (p.monto_neto || 0), 0));
-  }
-
-  get totalRetenido(): string {
-    const bruto = this.premios().reduce((s, p) => s + (p.monto_bruto || 0), 0);
-    const neto = this.premios().reduce((s, p) => s + (p.monto_neto || 0), 0);
-    return formatoMoneda(bruto - neto);
   }
 
   get totalPremios(): string {
@@ -154,6 +166,13 @@ export class PremiosPage implements OnInit {
   cargarQuinielas(): void {
     this.quinielasDatos.listar().subscribe({
       next: (lista) => this.quinielas.set(lista),
+      error: (e) => this.toast.error(e.message),
+    });
+  }
+
+  cargarEdiciones(): void {
+    this.edicionesDatos.listar().subscribe({
+      next: (lista) => this.ediciones.set(lista),
       error: (e) => this.toast.error(e.message),
     });
   }
@@ -192,7 +211,7 @@ export class PremiosPage implements OnInit {
 
   nuevo(): void {
     this.editandoPremioId = null;
-    this.formulario = { id_quiniela: 0, monto_bruto: 0 };
+    this.formulario = { id_quiniela: 0, monto_bruto: undefined, monto_neto: undefined };
     this.errorFormulario = '';
     this.guardando = false;
     this.modalVisible = true;
@@ -200,9 +219,13 @@ export class PremiosPage implements OnInit {
 
   editar(p: Premio): void {
     this.editandoPremioId = p.id_premio;
+    // Si el premio se registró por neto (retención 0), se precarga el neto;
+    // si no, el bruto, para no aplicar retención donde no corresponde.
+    const esNeto = !p.porcentaje_retencion;
     this.formulario = {
       id_quiniela: p.id_quiniela,
-      monto_bruto: p.monto_bruto,
+      monto_bruto: esNeto ? undefined : p.monto_bruto,
+      monto_neto: esNeto ? p.monto_neto : undefined,
     };
     this.errorFormulario = '';
     this.guardando = false;
@@ -221,21 +244,24 @@ export class PremiosPage implements OnInit {
       this.errorFormulario = 'Selecciona una quiniela.';
       return;
     }
-    if (!(f.monto_bruto > 0)) {
-      this.errorFormulario = 'El monto del premio es obligatorio y debe ser mayor a 0.';
+    const bruto = f.monto_bruto && f.monto_bruto > 0 ? f.monto_bruto : undefined;
+    const neto = f.monto_neto && f.monto_neto > 0 ? f.monto_neto : undefined;
+    if (bruto == null && neto == null) {
+      this.errorFormulario = 'Debe ingresar monto bruto o monto neto, con valor mayor a 0.';
       return;
     }
     this.guardando = true;
     this.errorFormulario = '';
     const cuerpo: PremioRequest = {
       id_quiniela: f.id_quiniela,
-      monto_bruto: f.monto_bruto,
+      monto_bruto: bruto,
+      monto_neto: neto,
     };
 
     const peticion =
       this.editandoPremioId === null
         ? this.datos.crear(cuerpo)
-        : this.datos.actualizar(this.editandoPremioId, cuerpo.monto_bruto);
+        : this.datos.actualizar(this.editandoPremioId, bruto, neto);
 
     peticion.subscribe({
       next: (res) => {
