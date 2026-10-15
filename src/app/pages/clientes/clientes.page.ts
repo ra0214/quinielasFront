@@ -21,6 +21,26 @@ import { SaldosService } from '../saldos/data-access/saldos.service';
 import { QuinielasService } from '../quinielas/data-access/quinielas.service';
 import { Quiniela, EstadoQuiniela } from '../../core/domain/models';
 
+type ResultadoQuiniela = 'En juego' | 'Premio' | 'No ganó' | 'Cancelada';
+
+/** Quiniela vista desde la perspectiva de un cliente (su aporte y su resultado). */
+interface QuinielaCliente {
+  id_quiniela: number;
+  variante: string;
+  estado: string;
+  resultado: ResultadoQuiniela;
+  aporte: number;
+  fecha_limite: string;
+}
+
+/** Devuelve el límite inferior del historial: un mes y una semana hacia atrás. */
+function limiteHistorial(): number {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  d.setDate(d.getDate() - 7);
+  return d.getTime();
+}
+
 @Component({
   selector: 'app-clientes',
   standalone: true,
@@ -90,8 +110,13 @@ export class ClientesPage implements OnInit {
   erroresRegistros: string[] = [];
 
   registrosVisible = false;
-  detalleQuinielas: Quiniela[] = [];
+
+  // Detalle de quinielas del cliente (En juego / Otros)
   detalleVisible = false;
+  detalleCliente: Cliente | null = null;
+  detalleEnJuego: QuinielaCliente[] = [];
+  detalleOtros: QuinielaCliente[] = [];
+  detalleCargando = false;
 
   ngOnInit(): void {
     this.cargar();
@@ -295,16 +320,102 @@ export class ClientesPage implements OnInit {
     return this.quinielasJugando(c).length;
   }
 
+  /** Aporte total que el cliente hizo en una quiniela (o lo pagado si es comprador DIRECTA). */
+  private aporteDeCliente(c: Cliente, q: Quiniela, mapAportes: Map<number, number>): number {
+    const delAporte = mapAportes.get(q.id_quiniela);
+    if (delAporte !== undefined) return delAporte;
+    if (q.id_cliente === c.id_cliente) return q.monto_pagado ?? q.monto_meta ?? 0;
+    return 0;
+  }
+
   abrirDetalleQuinielas(c: Cliente): void {
-    this.detalleQuinielas = this.quinielasJugando(c);
-    this.registrosCliente = c;
+    this.detalleCliente = c;
+    this.detalleEnJuego = [];
+    this.detalleOtros = [];
     this.detalleVisible = true;
+    this.detalleCargando = true;
+
+    const mapAportes = new Map<number, number>();
+    for (const a of this.aportesPorCliente()[c.id_cliente] || []) {
+      mapAportes.set(a.id_quiniela, (mapAportes.get(a.id_quiniela) ?? 0) + (a.monto_total_acumulado ?? 0));
+    }
+
+    // El premio se reconoce por el abono PREMIO_ABONO registrado al cliente.
+    this.movimientosSvc
+      .porCliente(c.id_cliente)
+      .pipe(catchError(() => of([])))
+      .subscribe({
+        next: (movimientos) => {
+          const ganadoras = new Set<number>();
+          for (const m of movimientos) {
+            if (m.tipo === 'PREMIO_ABONO' && m.id_quiniela != null) {
+              ganadoras.add(m.id_quiniela);
+            }
+          }
+
+          const limite = limiteHistorial();
+          const enJuego: QuinielaCliente[] = [];
+          const otros: QuinielaCliente[] = [];
+
+          for (const q of this.quinielas()) {
+            const participa = mapAportes.has(q.id_quiniela) || q.id_cliente === c.id_cliente;
+            if (!participa) continue;
+
+            const base = {
+              id_quiniela: q.id_quiniela,
+              variante: q.nombre_variante,
+              estado: q.estado,
+              aporte: this.aporteDeCliente(c, q, mapAportes),
+              fecha_limite: q.fecha_limite,
+            };
+
+            if (q.estado === 'EN_JUEGO') {
+              enJuego.push({ ...base, resultado: 'En juego' });
+              continue;
+            }
+
+            // "Otros": solo las pasadas dentro del último mes y una semana.
+            const fecha = q.fecha_limite ? new Date(q.fecha_limite).getTime() : NaN;
+            if (!isNaN(fecha) && fecha < limite) continue;
+
+            let resultado: ResultadoQuiniela = 'No ganó';
+            if (q.estado === 'CANCELADA') resultado = 'Cancelada';
+            else if (ganadoras.has(q.id_quiniela)) resultado = 'Premio';
+
+            otros.push({ ...base, resultado });
+          }
+
+          enJuego.sort((a, b) => b.fecha_limite.localeCompare(a.fecha_limite));
+          otros.sort((a, b) => b.fecha_limite.localeCompare(a.fecha_limite));
+
+          this.detalleEnJuego = enJuego;
+          this.detalleOtros = otros;
+          this.detalleCargando = false;
+        },
+        error: () => {
+          this.detalleCargando = false;
+        },
+      });
   }
 
   cerrarDetalle(): void {
     this.detalleVisible = false;
-    this.detalleQuinielas = [];
-    this.registrosCliente = null;
+    this.detalleCliente = null;
+    this.detalleEnJuego = [];
+    this.detalleOtros = [];
+  }
+
+  resultadoClase(r: ResultadoQuiniela): string {
+    switch (r) {
+      case 'Premio':
+        return 'resultado-premio';
+      case 'No ganó':
+        return 'resultado-no-gano';
+      case 'Cancelada':
+        return 'resultado-cancelada';
+      default:
+        return 'resultado-en-juego';
+    }
   }
 
 }

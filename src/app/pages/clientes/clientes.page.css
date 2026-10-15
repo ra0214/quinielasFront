@@ -65,3 +65,17 @@
 .saldo-verde { color: #16a34a; font-weight: 600; }
 .saldo-rojo { color: #dc2626; font-weight: 600; }
 .saldo-neutro { color: #6b7280; }
+
+.etiqueta-resultado {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.resultado-premio { background: #dcfce7; color: #15803d; }
+.resultado-no-gano { background: #f1f5f9; color: #475569; }
+.resultado-cancelada { background: #fee2e2; color: #b91c1c; }
+.resultado-en-juego { background: #dbeafe; color: #1d4ed8; }

@@ -165,28 +165,53 @@
   </div>
 </app-modal>
 
-<app-modal [visible]="detalleVisible" [titulo]="'Quinielas en juego · ' + (registrosCliente?.nombre ?? '')" (cerrar)="cerrarDetalle()">
-  <section class="bloque-registros">
-    <h4>Quinielas en juego ({{ detalleQuinielas.length }})</h4>
-    @if (detalleQuinielas.length === 0) {
-      <p class="texto-ayuda">Este cliente no tiene quinielas en juego.</p>
-    } @else {
-      <div class="lista-registros">
-        @for (q of detalleQuinielas; track q.id_quiniela) {
-          <div class="fila-registro">
-            <div class="fila-registro-principal">
-              <strong>Quiniela #{{ q.id_quiniela }} · {{ q.nombre_variante }}</strong>
-              <span>{{ moneda(q.monto_meta) }}</span>
+<app-modal [visible]="detalleVisible" [titulo]="'Quinielas de · ' + (detalleCliente?.nombre ?? '')" (cerrar)="cerrarDetalle()">
+  @if (detalleCargando) {
+    <p class="texto-ayuda">Cargando…</p>
+  } @else {
+    <section class="bloque-registros">
+      <h4>En juego ({{ detalleEnJuego.length }})</h4>
+      @if (detalleEnJuego.length === 0) {
+        <p class="texto-ayuda">Este cliente no tiene quinielas en juego.</p>
+      } @else {
+        <div class="lista-registros">
+          @for (q of detalleEnJuego; track q.id_quiniela) {
+            <div class="fila-registro">
+              <div class="fila-registro-principal">
+                <strong>Quiniela #{{ q.id_quiniela }} · {{ q.variante }}</strong>
+                <span>{{ moneda(q.aporte) }}</span>
+              </div>
+              <div class="fila-registro-secundaria">
+                <span>Límite: {{ fecha(q.fecha_limite) }}</span>
+              </div>
             </div>
-            <div class="fila-registro-secundaria">
-              <span>Estado: {{ q.estado }}</span>
-              <span>Límite: {{ fecha(q.fecha_limite) }}</span>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="bloque-registros">
+      <h4>Otros ({{ detalleOtros.length }})</h4>
+      @if (detalleOtros.length === 0) {
+        <p class="texto-ayuda">Sin quinielas anteriores en el último mes y una semana.</p>
+      } @else {
+        <div class="lista-registros">
+          @for (q of detalleOtros; track q.id_quiniela) {
+            <div class="fila-registro">
+              <div class="fila-registro-principal">
+                <strong>Quiniela #{{ q.id_quiniela }} · {{ q.variante }}</strong>
+                <span>{{ moneda(q.aporte) }}</span>
+              </div>
+              <div class="fila-registro-secundaria">
+                <span [class]="'etiqueta-resultado ' + resultadoClase(q.resultado)">{{ q.resultado }}</span>
+                <span>Límite: {{ fecha(q.fecha_limite) }}</span>
+              </div>
             </div>
-          </div>
-        }
-      </div>
-    }
-  </section>
+          }
+        </div>
+      }
+    </section>
+  }
 
   <div pie>
     <button class="btn btn-ghost" (click)="cerrarDetalle()">Cerrar</button>
