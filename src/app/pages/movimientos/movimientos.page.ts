@@ -15,7 +15,6 @@ import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
 import { ChipsFiltroComponent, OpcionChip } from '../../ui/molecules/chips-filtro/chips-filtro.component';
-import { ConfirmDialogComponent } from '../../ui/molecules/confirm-dialog/confirm-dialog.component';
 import { BuscadorClienteComponent } from '../../ui/molecules/buscador-cliente/buscador-cliente.component';
 import { ModalComponent } from '../../ui/molecules/modal/modal.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
@@ -44,7 +43,6 @@ interface MovimientoVista extends Movimiento {
     TablaComponent,
     CeldaDirective,
     ModalComponent,
-    ConfirmDialogComponent,
     BuscadorClienteComponent,
   ],
   templateUrl: './movimientos.page.html',
@@ -85,24 +83,18 @@ export class MovimientosPage implements OnInit, OnDestroy {
   filtroTipo = '';
 
   readonly columnas: ColumnaTabla[] = [
-    { clave: 'fecha', etiqueta: 'Fecha', tipo: 'fecha' },
+    { clave: 'fecha', etiqueta: 'Fecha' },
     { clave: 'nombre_cliente', etiqueta: 'Cliente' },
-    { clave: 'id_quiniela', etiqueta: 'Quiniela' },
     { clave: 'tipo', etiqueta: 'Tipo' },
-    { clave: 'monto', etiqueta: 'Monto', tipo: 'moneda', clase: 'num' },
-    { clave: 'descripcion', etiqueta: 'Descripción' },
-    { clave: 'acciones', etiqueta: 'Acciones', clase: 'acciones', ordenable: false },
+    { clave: 'monto', etiqueta: 'Monto' },
+    { clave: 'descripcion', etiqueta: 'Detalle' },
   ];
 
   // Modal crear
   modalVisible = false;
   formulario: MovimientoRequest = { id_cliente: 0, id_quiniela: null, tipo: '', monto: 0, descripcion: '' };
-  editando: Movimiento | null = null;
   guardando = false;
   errorFormulario = '';
-
-  // Eliminar
-  pendiente: Movimiento | null = null;
 
   private sub?: Subscription;
 
@@ -145,6 +137,7 @@ export class MovimientosPage implements OnInit, OnDestroy {
   }
 
   get montoTotal(): string {
+    if (this.clienteSeleccionado === '') return '—';
     return formatoMoneda(this.lista.reduce((suma, m) => suma + (m.monto || 0), 0));
   }
 
@@ -210,21 +203,6 @@ export class MovimientosPage implements OnInit, OnDestroy {
       monto: 0,
       descripcion: '',
     };
-    this.editando = null;
-    this.errorFormulario = '';
-    this.guardando = false;
-    this.modalVisible = true;
-  }
-
-  editar(m: Movimiento): void {
-    this.formulario = {
-      id_cliente: m.id_cliente,
-      id_quiniela: m.id_quiniela ?? null,
-      tipo: m.tipo,
-      monto: m.monto,
-      descripcion: m.descripcion,
-    };
-    this.editando = m;
     this.errorFormulario = '';
     this.guardando = false;
     this.modalVisible = true;
@@ -232,7 +210,6 @@ export class MovimientosPage implements OnInit, OnDestroy {
 
   cerrarModal(): void {
     this.modalVisible = false;
-    this.editando = null;
     this.guardando = false;
   }
 
@@ -276,39 +253,15 @@ export class MovimientosPage implements OnInit, OnDestroy {
       descripcion: f.descripcion.trim(),
     };
 
-    const operacion = this.editando
-      ? this.datos.actualizar(this.editando.id_movimiento, cuerpo)
-      : this.datos.crear(cuerpo);
-
-    operacion.subscribe({
+    this.datos.crear(cuerpo).subscribe({
       next: (res) => {
-        this.toast.exito(res.message || (this.editando ? 'Movimiento actualizado' : 'Movimiento registrado'));
+        this.toast.exito(res.message || 'Movimiento registrado');
         this.cerrarModal();
         this.cargarMovimientos();
       },
       error: (e) => {
         this.errorFormulario = e.message;
         this.guardando = false;
-      },
-    });
-  }
-
-  eliminar(m: Movimiento): void {
-    this.pendiente = m;
-  }
-
-  confirmarEliminacion(): void {
-    const m = this.pendiente;
-    if (!m) return;
-    this.datos.eliminar(m.id_movimiento).subscribe({
-      next: (res) => {
-        this.toast.exito(res.message || 'Movimiento eliminado');
-        this.pendiente = null;
-        this.cargarMovimientos();
-      },
-      error: (e) => {
-        this.toast.error(e.message);
-        this.pendiente = null;
       },
     });
   }

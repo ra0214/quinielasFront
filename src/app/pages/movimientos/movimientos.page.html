@@ -1,12 +1,12 @@
 <app-encabezado-pagina
   titulo="Movimientos"
-  descripcion="Histórico por cliente, creación y eliminación">
+  descripcion="Bitácora de movimientos por cliente">
   <button class="btn btn-primario" (click)="nuevo()"><app-icono nombre="agregar" /> Nuevo movimiento</button>
 </app-encabezado-pagina>
 
 <div class="resumen">
   <app-tarjeta-resumen etiqueta="Movimientos mostrados" [valor]="totalMovimientos" tono="azul" />
-  <app-tarjeta-resumen etiqueta="Monto total (filtro actual)" [valor]="montoTotal" />
+  <app-tarjeta-resumen etiqueta="Monto total (cliente seleccionado)" [valor]="montoTotal" />
 </div>
 
 <div class="toolbar">
@@ -48,25 +48,11 @@
   <ng-template celda="tipo" let-fila>
     <app-badge [valor]="fila.tipo" />
   </ng-template>
-  <ng-template celda="acciones" let-fila>
-    <button
-      class="btn btn-mini"
-      (click)="editar(fila)"
-      title="Editar movimiento">
-      <app-icono nombre="editar" />
-    </button>
-    <button
-      class="btn btn-mini btn-peligro"
-      (click)="eliminar(fila)"
-      title="Eliminar movimiento">
-      <app-icono nombre="eliminar" />
-    </button>
-  </ng-template>
 </app-tabla>
 
 <app-modal
   [visible]="modalVisible"
-  [titulo]="editando ? 'Editar movimiento' : 'Nuevo movimiento'"
+  titulo="Nuevo movimiento"
   (cerrar)="cerrarModal()">
   @if (errorFormulario) {
     <div class="aviso aviso-error">{{ errorFormulario }}</div>
@@ -84,7 +70,6 @@
       <app-buscador-cliente
         [clientes]="clientes()"
         [idSeleccionado]="formulario.id_cliente || null"
-        [deshabilitado]="!!editando"
         placeholder="Escribe el nombre del cliente…"
         (idSeleccionadoChange)="formulario.id_cliente = $event ?? 0" />
     </div>
@@ -133,22 +118,7 @@
   <div pie>
     <button class="btn btn-ghost" (click)="cerrarModal()">Cancelar</button>
     <button class="btn btn-primario" [disabled]="guardando" (click)="guardar()">
-      {{ guardando ? 'Guardando…' : editando ? 'Guardar cambios' : 'Guardar' }}
+      {{ guardando ? 'Guardando…' : 'Guardar' }}
     </button>
   </div>
 </app-modal>
-
-<app-confirm-dialog
-  [visible]="!!pendiente"
-  titulo="Eliminar movimiento"
-  [mensaje]="
-    '¿Seguro que deseas eliminar el movimiento #' +
-    (pendiente?.id_movimiento ?? '') +
-    ' (' +
-    (pendiente?.tipo ?? '') +
-    ')? Esta acción no se puede deshacer.'
-  "
-  textoConfirmar="Eliminar"
-  (confirmar)="confirmarEliminacion()"
-  (cancelar)="pendiente = null">
-</app-confirm-dialog>
