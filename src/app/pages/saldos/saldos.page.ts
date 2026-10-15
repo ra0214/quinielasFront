@@ -27,8 +27,11 @@ interface FilaSaldo {
 
 type TipoFiltro = 'todos' | FiltroSaldo;
 
-/** Modo del modal: ajuste directo, captura de pago o captura de retiro. */
-type ModoModal = 'ajuste' | 'pago' | 'retiro';
+/** Modo del modal: captura de pago o captura de retiro. */
+type ModoModal = 'pago' | 'retiro';
+
+/** Métodos de pago disponibles al registrar un pago. */
+const METODOS_PAGO = ['En efectivo', 'Por tarjeta', 'Por transferencia', 'Por depósito'] as const;
 
 @Component({
   selector: 'app-saldos-page',
@@ -74,19 +77,22 @@ export class SaldosPage implements OnInit {
 
   readonly columnas: ColumnaTabla[] = [
     { clave: 'nombre', etiqueta: 'Cliente' },
-    { clave: 'saldo_favor', etiqueta: 'Monto a favor', tipo: 'moneda', clase: 'num' },
-    { clave: 'saldo_deuda', etiqueta: 'Monto deuda', tipo: 'moneda', clase: 'num' },
-    { clave: 'neto', etiqueta: 'Neto', clase: 'num' },
+    { clave: 'neto', etiqueta: 'Saldo', clase: 'num' },
     { clave: 'acciones', etiqueta: 'Acciones', clase: 'acciones', ordenable: false },
   ];
 
-  // Modal editar saldo
+  readonly metodosPago = METODOS_PAGO;
+
+  // Modal de pago / retiro
   modalVisible = false;
-  modo: ModoModal = 'ajuste';
+  modo: ModoModal = 'pago';
   editandoId: number | null = null;
   editandoFila: FilaSaldo | null = null;
-  form: { saldo_favor: number | null; saldo_deuda: number | null } = { saldo_favor: 0, saldo_deuda: 0 };
-  movForm: { monto: number | null; descripcion: string } = { monto: null, descripcion: '' };
+  movForm: { monto: number | null; metodoPago: string; descripcion: string } = {
+    monto: null,
+    metodoPago: METODOS_PAGO[0],
+    descripcion: '',
+  };
   guardando = false;
   errorFormulario = '';
 
@@ -152,54 +158,55 @@ export class SaldosPage implements OnInit {
     return this.filas().reduce((suma, f) => suma + f.saldo_favor, 0);
   }
 
-  get conDeuda(): number {
-    return this.filas().filter((f) => f.saldo_deuda > 0).length;
+  /** Suma del total a favor y el total de deuda. */
+  get totalGeneral(): number {
+    return this.totalFavor + this.totalDeuda;
   }
 
-  get enCero(): number {
-    return this.filas().filter((f) => f.saldo_favor === 0 && f.saldo_deuda === 0).length;
+  get conDeuda(): number {
+    return this.filas().filter((f) => f.saldo_deuda > 0).length;
   }
 
   get conDeudaTexto(): string {
     return String(this.conDeuda);
   }
 
-  get enCeroTexto(): string {
-    return String(this.enCero);
-  }
-
   moneda(v: number): string {
     return formatoMoneda(v);
   }
 
-  /** el saldo neto negativo se muestra en 0. */
-  netoTexto(f: FilaSaldo): string {
-    return formatoMoneda(Math.max(0, f.neto));
+  /** Texto del saldo neto: positivo a favor, negativo cuando está en contra. */
+  saldoTexto(f: FilaSaldo): string {
+    return formatoMoneda(f.neto);
   }
 
-  // ===== Edición rápida =====
-  editar(f: FilaSaldo): void {
-    this.editandoId = f.id_cliente;
-    this.editandoFila = f;
-    this.modo = 'ajuste';
-    this.form = { saldo_favor: f.saldo_favor, saldo_deuda: f.saldo_deuda };
-    this.errorFormulario = '';
-    this.modalVisible = true;
+  /** Color del saldo: verde si es a favor, rojo si está en contra. */
+  claseSaldo(f: FilaSaldo): string {
+    if (f.neto > 0) return 'texto-verde';
+    if (f.neto < 0) return 'texto-rojo';
+    return 'saldo-cero';
   }
 
+  /** Solo se puede retirar si el cliente tiene saldo a favor. */
+  puedeRetirar(f: FilaSaldo): boolean {
+    return f.neto > 0;
+  }
+
+  // ===== Pago / retiro =====
   pago(f: FilaSaldo): void {
-    this.abrirMovimiento(f, 'pago', 'Pago en efectivo');
+    this.abrirMovimiento(f, 'pago');
   }
 
   retiro(f: FilaSaldo): void {
-    this.abrirMovimiento(f, 'retiro', 'Retiro en ventanilla');
+    if (!this.puedeRetirar(f)) return;
+    this.abrirMovimiento(f, 'retiro');
   }
 
-  private abrirMovimiento(f: FilaSaldo, modo: 'pago' | 'retiro', descripcionPorDefecto: string): void {
+  private abrirMovimiento(f: FilaSaldo, modo: ModoModal): void {
     this.editandoId = f.id_cliente;
     this.editandoFila = f;
     this.modo = modo;
-    this.movForm = { monto: null, descripcion: descripcionPorDefecto };
+    this.movForm = { monto: null, metodoPago: METODOS_PAGO[0], descripcion: '' };
     this.errorFormulario = '';
     this.modalVisible = true;
   }
@@ -213,14 +220,12 @@ export class SaldosPage implements OnInit {
   get tituloModal(): string {
     const nombre = this.nombreEditando();
     if (this.modo === 'pago') return `Registrar pago · ${nombre}`;
-    if (this.modo === 'retiro') return `Registrar retiro · ${nombre}`;
-    return `Editar saldo · ${nombre}`;
+    return `Registrar retiro · ${nombre}`;
   }
 
   get lenguajeModal(): string {
     if (this.modo === 'pago') return 'El pago reduce la deuda del cliente y, si sobra, se acumula a su favor.';
-    if (this.modo === 'retiro') return 'El retiro se cobra del saldo a favor del cliente y queda registrado como movimiento.';
-    return 'Los saldos no pueden ser negativos.';
+    return 'El retiro se cobra del saldo a favor del cliente y queda registrado como movimiento.';
   }
 
   nombreEditando(): string {
@@ -236,26 +241,26 @@ export class SaldosPage implements OnInit {
     const id = this.editandoId;
     if (id === null) return;
 
-    if (this.modo === 'ajuste') {
-      this.guardarAjuste(id);
-      return;
-    }
-
     const monto = this.movForm.monto === null || isNaN(this.movForm.monto) ? 0 : this.movForm.monto;
     if (!(monto > 0)) {
       this.errorFormulario = 'El monto es obligatorio y debe ser mayor a 0.';
       return;
     }
-    if (this.modo === 'retiro') {
+
+    let descripcion: string;
+    if (this.modo === 'pago') {
+      descripcion = this.movForm.metodoPago;
+    } else {
       const favor = this.editandoFila?.saldo_favor ?? 0;
       if (monto > favor) {
         this.errorFormulario = 'El cliente no tiene saldo a favor suficiente para este retiro.';
         return;
       }
-    }
-    if (!this.movForm.descripcion.trim()) {
-      this.errorFormulario = 'Escribe una descripción del movimiento.';
-      return;
+      descripcion = this.movForm.descripcion.trim();
+      if (!descripcion) {
+        this.errorFormulario = 'Escribe una descripción del retiro.';
+        return;
+      }
     }
 
     const tipo = this.modo === 'pago' ? 'PAGO_EFECTIVO' : 'RETIRO';
@@ -266,36 +271,10 @@ export class SaldosPage implements OnInit {
       id_quiniela: null,
       tipo,
       monto,
-      descripcion: this.movForm.descripcion.trim(),
+      descripcion,
     }).subscribe({
       next: (res) => {
         this.toast.exito(res.message || 'Movimiento registrado');
-        this.cerrarModal();
-        this.cargar();
-      },
-      error: (e) => {
-        this.errorFormulario = e.message;
-        this.guardando = false;
-      },
-    });
-  }
-
-  private guardarAjuste(id: number): void {
-    const favor = this.form.saldo_favor === null || isNaN(this.form.saldo_favor) ? 0 : this.form.saldo_favor;
-    const deuda = this.form.saldo_deuda === null || isNaN(this.form.saldo_deuda) ? 0 : this.form.saldo_deuda;
-
-    if (favor < 0 || deuda < 0) {
-      this.errorFormulario = 'Los saldos no pueden ser negativos.';
-      return;
-    }
-
-    this.guardando = true;
-    this.errorFormulario = '';
-
-    // La API toma los campos ausentes como 0: siempre enviamos ambos.
-    this.datos.editar(id, { saldo_favor: favor, saldo_deuda: deuda }).subscribe({
-      next: (res) => {
-        this.toast.exito(res.message || 'Saldo actualizado correctamente');
         this.cerrarModal();
         this.cargar();
       },
