@@ -9,7 +9,6 @@ import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
 import { ChipsFiltroComponent, OpcionChip } from '../../ui/molecules/chips-filtro/chips-filtro.component';
-import { ConfirmDialogComponent } from '../../ui/molecules/confirm-dialog/confirm-dialog.component';
 import { ModalComponent } from '../../ui/molecules/modal/modal.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
 import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
@@ -56,7 +55,6 @@ interface FormularioQuiniela {
     TablaComponent,
     CeldaDirective,
     ModalComponent,
-    ConfirmDialogComponent,
     BadgeComponent,
   ],
   templateUrl: './quinielas.page.html',
@@ -123,9 +121,6 @@ export class QuinielasPage implements OnInit {
   formulario: FormularioQuiniela = this.formularioVacio();
   guardando = false;
   errorFormulario = '';
-
-  // Eliminar
-  pendiente: QuinielaVista | null = null;
 
   // Modal registrar aporte (misma ventana)
   aporteVisible = false;
@@ -535,26 +530,6 @@ export class QuinielasPage implements OnInit {
         this.errorFormulario = e.message;
         this.toast.error(e.message);
         this.guardando = false;
-      },
-    });
-  }
-
-  eliminar(q: QuinielaVista): void {
-    this.pendiente = q;
-  }
-
-  confirmarEliminacion(): void {
-    const q = this.pendiente;
-    if (!q) return;
-    this.datos.eliminar(q.id_quiniela).subscribe({
-      next: (res) => {
-        this.toast.exito(res.message || 'Quiniela eliminada');
-        this.pendiente = null;
-        this.cargar();
-      },
-      error: (e) => {
-        this.toast.error(e.message);
-        this.pendiente = null;
       },
     });
   }

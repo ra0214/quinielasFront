@@ -100,13 +100,6 @@
     <button class="btn btn-mini btn-ghost" (click)="editar(fila)">
       <app-icono nombre="editar" /> Editar
     </button>
-    <button
-      class="btn btn-mini btn-peligro"
-      (click)="eliminar(fila)"
-      title="Eliminar quiniela"
-      aria-label="Eliminar quiniela">
-      <app-icono nombre="eliminar" />
-    </button>
   </ng-template>
 </app-tabla>
 
@@ -322,12 +315,3 @@
     </button>
   </div>
 </app-modal>
-
-<app-confirm-dialog
-  [visible]="!!pendiente"
-  titulo="Eliminar quiniela"
-  [mensaje]="'¿Seguro que deseas eliminar la quiniela ' + (pendiente?.nombre_variante ?? '') + ' de ' + (pendiente?.nombre_edicion ?? '') + '? Esta acción no se puede deshacer.'"
-  textoConfirmar="Eliminar"
-  (confirmar)="confirmarEliminacion()"
-  (cancelar)="pendiente = null">
-</app-confirm-dialog>
