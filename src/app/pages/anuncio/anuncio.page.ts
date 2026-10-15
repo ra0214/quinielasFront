@@ -1,9 +1,9 @@
 import { IconoComponent } from '../../ui/atoms/icono/icono.component';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { catchError, forkJoin, map, of } from 'rxjs';
+import html2canvas from 'html2canvas';
 import { AporteDetalle, Edicion, Quiniela } from '../../core/domain/models';
-import { formatoFecha, formatoMoneda, formatoPorcentaje } from '../../core/domain/helpers';
+import { etiquetaQuiniela, formatoFecha, formatoMoneda, formatoPorcentaje } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
@@ -13,6 +13,7 @@ import { EdicionesService } from '../ediciones/data-access/ediciones.service';
 import { QuinielasService } from '../quinielas/data-access/quinielas.service';
 
 interface ClienteAnuncio {
+  id_cliente: number;
   nombre: string;
   porcentaje: number;
   monto: number;
@@ -22,6 +23,7 @@ interface AnuncioQuiniela {
   id_quiniela: number;
   variante: string;
   edicion: string;
+  etiqueta: string;
   monto_meta: number;
   fecha_limite: string;
   estado: string;
@@ -31,6 +33,28 @@ interface AnuncioQuiniela {
   clientes: ClienteAnuncio[];
 }
 
+/** Columna del tablero exportable: una quiniela activa. */
+interface ColumnaTablero {
+  id_quiniela: number;
+  titulo: string;
+  color: string;
+  meta: number;
+  acumulado: number;
+  falta: number;
+}
+
+interface CeldaTablero {
+  monto: number;
+  porcentaje: number;
+}
+
+interface FilaTablero {
+  id_cliente: number;
+  nombre: string;
+  celdas: CeldaTablero[];
+  total: number;
+}
+
 type TonoAnuncio = 'completada' | 'cancelable' | 'cancelada' | 'activa';
 
 @Component({
@@ -38,7 +62,6 @@ type TonoAnuncio = 'completada' | 'cancelable' | 'cancelada' | 'activa';
   standalone: true,
   imports: [
     IconoComponent,
-    FormsModule,
     EncabezadoPaginaComponent,
     TarjetaResumenComponent,
     BadgeComponent,
@@ -55,43 +78,37 @@ export class AnuncioPage implements OnInit {
   readonly anuncios = signal<AnuncioQuiniela[]>([]);
   cargando = true;
   errorApi = '';
+  exportando = false;
 
-  // ===== DATOS DE EJEMPLO (reemplazar por los reales) =====
-  // Todo lo de este bloque es de muestra para que el anuncio se vea completo;
-  // cuando tengan los datos definitivos solo se cambian estos valores.
-  readonly publicador = 'Organización de Quinielas «El Buen Amigo»';
-  readonly contacto = {
-    telefono: '+58 000-000-0000',
-    whatsapp: '+58 000-000-0000',
-    correo: 'ejemplo@correo.com',
-  };
-  readonly horario = [
-    { dia: 'Lunes a Viernes', hora: '8:00 am – 6:00 pm' },
-    { dia: 'Sábados', hora: '8:00 am – 1:00 pm' },
-    { dia: 'Domingos y feriados', hora: 'Cerrado' },
-  ];
-  readonly transferencias = [
-    {
-      banco: 'Banco de Ejemplo',
-      titular: 'Ejemplo Apellido, C.I. V-00.000.000',
-      cuenta: '0102-0000-00-0000000000',
-      tipo: 'Ahorro',
-    },
-    {
-      banco: 'Banco de Ejemplo 2',
-      titular: 'Ejemplo Apellido, C.I. V-00.000.000',
-      cuenta: '0105-0000-00-0000000000',
-      tipo: 'Corriente',
-    },
-  ];
-  readonly pagoMovil = {
-    banco: 'Banco de Ejemplo',
-    telefono: '000-0000000',
-    cedula: 'V-00.000.000',
-  };
-  readonly notaAportes =
+  // ===== Aviso y datos de pago / contacto / reglas =====
+  readonly avisoAporte =
     'Indica tu nombre y teléfono en la referencia de la transferencia, o envíanos el ' +
     'comprobante por WhatsApp, para acreditar tu aporte.';
+
+  readonly pago = {
+    titulo: 'Aportaciones Para PROGOL',
+    nota: 'Los aportes solo se anotarán una vez PAGADOS y CONFIRMADOS en la cuenta de:',
+    banco: 'COMPARTAMOS (TRANSFERENCIAS, SPEI)',
+    titular: 'Marvey Ramirez Herrera',
+    clabe: '130100001667244557',
+  };
+
+  readonly ventanilla = 'Lunes a Sábado 10:00 am - 9:00 pm · Domingos 10:00 am - 8:00 pm';
+  readonly telefonoWhatsapp = '9616957829';
+
+  readonly reglas: string[] = [
+    'Todos los aportes deberán ser cubiertos y reportados antes de la hora establecida o cierre de aportes (en cuanto se alcance la meta).',
+    'Pueden usar los saldos de premios antes de cobrar el premio.',
+    'Para pagos de premios anticipados (que sean cobrados en efectivo y siguen siendo boletos) tendrá un cargo de 5% de lo que retiren.',
+    'Una vez cobrado los premios no tendrán ningún cargo por mi parte, salvo los gastos de depósito (por ejemplo, en un Oxxo).',
+    'Se cancelan las quinielas si el creador de la quiniela así lo pide; los aportes quedarán como saldo a favor.',
+    'Deberán indicar a qué quiniela será su aporte, o permanecerá como saldo a favor solamente (sin concursar).',
+    'Todas las aportaciones reunidas y pagadas se jugarán lo más parecido a la quiniela propuesta. En caso de no poder ponerse tal cual, la propuesta se modificará quitando dobles y triples, poniendo revanchas o quinielas extras, pero siempre tratando de cubrir la propuesta; o simplemente se cancela.',
+    'El límite de aportes es el día del cierre del concurso, 4 horas antes o cuando se cierren los aportes (lo que ocurra primero).',
+    'Debido a tantos usuarios, les pido de favor que estén pendientes de sus aportes y me avisen si algo está mal, para evitar que se queden fuera de la jugada.',
+    'Debido a las dificultades para cobrar los premios, a todo premio le descontaré 1%, a menos que por unanimidad del grupo se le dé a otra persona.',
+    'Esta encomienda y todos los premios generarán el 17% de impuestos del estado de Chiapas: 7% de retenciones y 10% que cobran al reportarlo ante Hacienda en premios mayores a $10,000.',
+  ];
 
   ngOnInit(): void {
     this.cargar();
@@ -105,8 +122,7 @@ export class AnuncioPage implements OnInit {
       ediciones: this.edicionesSvc.listar(),
     }).subscribe({
       next: ({ quinielas, ediciones }) => {
-        const nombresEdicion = new Map(ediciones.map((e) => [e.id_edicion, e.nombre_edicion]));
-        this.cargarAportes(quinielas, nombresEdicion);
+        this.cargarAportes(quinielas, ediciones);
       },
       error: (e) => {
         this.cargando = false;
@@ -115,11 +131,13 @@ export class AnuncioPage implements OnInit {
     });
   }
 
-  private cargarAportes(quinielas: Quiniela[], nombresEdicion: Map<number, string>): void {
+  private cargarAportes(quinielas: Quiniela[], ediciones: Edicion[]): void {
+    const tiposEdicion = new Map(ediciones.map((e) => [e.id_edicion, e.tipo_edicion]));
+    const nombresEdicion = new Map(ediciones.map((e) => [e.id_edicion, e.nombre_edicion]));
     const peticiones = quinielas.map((q) =>
       this.aportesSvc.porQuiniela(q.id_quiniela).pipe(
         catchError(() => of<AporteDetalle[]>([])),
-        map((aportes) => this.aAnuncio(q, aportes, nombresEdicion))
+        map((aportes) => this.aAnuncio(q, aportes, tiposEdicion, nombresEdicion))
       )
     );
     forkJoin(peticiones).subscribe({
@@ -134,13 +152,19 @@ export class AnuncioPage implements OnInit {
     });
   }
 
-  private aAnuncio(q: Quiniela, aportes: AporteDetalle[], nombresEdicion: Map<number, string>): AnuncioQuiniela {
+  private aAnuncio(
+    q: Quiniela,
+    aportes: AporteDetalle[],
+    tiposEdicion: Map<number, string>,
+    nombresEdicion: Map<number, string>
+  ): AnuncioQuiniela {
     const recaudado = aportes.reduce((suma, a) => suma + (a.monto_total_acumulado || 0), 0);
     const faltante = (q.monto_meta || 0) - recaudado;
     return {
       id_quiniela: q.id_quiniela,
       variante: q.nombre_variante,
       edicion: nombresEdicion.get(q.id_edicion) ?? `Edición #${q.id_edicion}`,
+      etiqueta: etiquetaQuiniela(q.nombre_variante, tiposEdicion.get(q.id_edicion), q.id_quiniela),
       monto_meta: q.monto_meta,
       fecha_limite: q.fecha_limite,
       estado: q.estado,
@@ -150,12 +174,58 @@ export class AnuncioPage implements OnInit {
       clientes: aportes
         .filter((a) => a.monto_total_acumulado > 0)
         .map((a) => ({
+          id_cliente: a.id_cliente,
           nombre: a.nombre_cliente,
           porcentaje: a.porcentaje_participacion,
           monto: a.monto_total_acumulado,
         }))
         .sort((a, b) => b.porcentaje - a.porcentaje),
     };
+  }
+
+  // ===== Tablero exportable =====
+
+  private readonly coloresTablero = ['color-0', 'color-1', 'color-2', 'color-3', 'color-4', 'color-5'];
+
+  get activas(): AnuncioQuiniela[] {
+    return this.anuncios().filter((q) => q.estado === 'EN_JUEGO');
+  }
+
+  get columnasTablero(): ColumnaTablero[] {
+    return this.activas.map((q, i) => ({
+      id_quiniela: q.id_quiniela,
+      titulo: q.etiqueta,
+      color: this.coloresTablero[i % this.coloresTablero.length],
+      meta: q.monto_meta,
+      acumulado: q.recaudado,
+      falta: Math.max(0, q.faltante),
+    }));
+  }
+
+  get filasTablero(): FilaTablero[] {
+    const columnas = this.activas;
+    const participantes = new Map<number, string>();
+    for (const q of columnas) {
+      for (const c of q.clientes) participantes.set(c.id_cliente, c.nombre);
+    }
+    const filas: FilaTablero[] = [];
+    for (const [id, nombre] of participantes) {
+      const celdas: CeldaTablero[] = columnas.map((q) => {
+        const cliente = q.clientes.find((c) => c.id_cliente === id);
+        return { monto: cliente?.monto ?? 0, porcentaje: cliente?.porcentaje ?? 0 };
+      });
+      filas.push({
+        id_cliente: id,
+        nombre,
+        celdas,
+        total: celdas.reduce((s, c) => s + c.monto, 0),
+      });
+    }
+    return filas.sort((a, b) => b.total - a.total);
+  }
+
+  get anchoTotalTablero(): number {
+    return 1 + this.columnasTablero.length * 2;
   }
 
   moneda(v: number): string {
@@ -219,5 +289,53 @@ export class AnuncioPage implements OnInit {
 
   get completadas(): string {
     return String(this.anuncios().filter((q) => q.estado === 'COMPLETADA').length);
+  }
+
+  // ===== Acciones =====
+
+  /** Lleva al tablero de aportes (participación con un clic). */
+  irATablero(): void {
+    document.getElementById('exportable-board')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  async exportarImagen(): Promise<void> {
+    const nodo = document.getElementById('exportable-board');
+    if (!nodo || this.exportando) return;
+
+    this.exportando = true;
+    const anchoPrevio = nodo.style.width;
+    // Ancho fijo al exportar para que las columnas no se rompan.
+    nodo.style.width = '1200px';
+    nodo.classList.add('exportando');
+
+    try {
+      const canvas = await html2canvas(nodo, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        windowWidth: nodo.scrollWidth,
+      });
+      const enlace = document.createElement('a');
+      enlace.href = canvas.toDataURL('image/png');
+      enlace.download = `lista-de-aportes-${this.selloFecha()}.png`;
+      enlace.click();
+      this.toast.exito('Imagen generada correctamente');
+    } catch {
+      this.toast.error('No se pudo generar la imagen');
+    } finally {
+      nodo.style.width = anchoPrevio;
+      nodo.classList.remove('exportando');
+      this.exportando = false;
+    }
+  }
+
+  imprimir(): void {
+    window.print();
+  }
+
+  private selloFecha(): string {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
   }
 }

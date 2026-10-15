@@ -1,3 +1,284 @@
+/* ===== Tablero exportable (#exportable-board) ===== */
+
+.board-scroll {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.board {
+  background: #ffffff;
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  padding: 22px;
+  margin-bottom: 24px;
+  color: var(--texto);
+}
+
+.board.exportando {
+  box-shadow: none;
+}
+
+/* html2canvas no maneja position:sticky; al exportar lo neutralizamos. */
+.board.exportando .th-participante,
+.board.exportando .td-participante {
+  position: static;
+}
+
+/* Aviso superior destacado */
+.board-aviso {
+  background: linear-gradient(90deg, #fde68a, #fbbf24);
+  color: #7c2d12;
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  padding: 18px 22px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 20px;
+  align-items: start;
+}
+
+.board-titulo {
+  margin: 0 0 12px;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-suave);
+}
+
+/* ===== Tabla de aportes ===== */
+.board-tabla-wrap {
+  overflow-x: auto;
+}
+
+.board-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.board-tabla th,
+.board-tabla td {
+  border: 1px solid #cbd5e1;
+  padding: 7px 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.board-tabla .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.th-participante,
+.td-participante {
+  width: 150px;
+  background: #f1f5f9;
+  font-weight: 700;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.td-participante {
+  font-weight: 600;
+}
+
+.th-quiniela {
+  color: #ffffff;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.th-sub {
+  text-align: center;
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+/* Colores por quiniela para diferenciar bloques de columnas */
+.color-0 { background: #16a34a; }
+.color-1 { background: #2563eb; }
+.color-2 { background: #7c3aed; }
+.color-3 { background: #d97706; }
+.color-4 { background: #0891b2; }
+.color-5 { background: #db2777; }
+
+.board-tabla tbody tr:nth-child(even) td:not(.td-participante) {
+  background: #f8fafc;
+}
+
+.td-vacio {
+  text-align: center;
+  color: var(--texto-suave);
+  font-style: italic;
+  padding: 16px;
+}
+
+/* Filas de totales */
+.board-tabla tfoot td {
+  font-weight: 700;
+}
+
+.board-tabla .fila-acumulado td {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.board-tabla .fila-falta td {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.board-tabla .fila-meta td {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.board-tabla .fila-acumulado .td-participante { background: #bbf7d0; color: #14532d; }
+.board-tabla .fila-falta .td-participante { background: #fecaca; color: #7f1d1d; }
+.board-tabla .fila-meta .td-participante { background: #bfdbfe; color: #1e3a8a; }
+
+/* ===== Paneles laterales ===== */
+.board-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 12.5px;
+}
+
+.panel h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.panel-pago {
+  background: #fffbeb;
+  border: 2px solid #f59e0b;
+}
+
+.pago-titulo {
+  margin: 0 0 6px;
+  font-weight: 800;
+  color: #92400e;
+  font-size: 13px;
+}
+
+.pago-nota {
+  margin: 0 0 10px;
+  color: #78350f;
+  line-height: 1.4;
+}
+
+.pago-datos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pago-datos li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #ffffff;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.pago-datos span {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-suave);
+}
+
+.pago-datos strong {
+  font-size: 13px;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.panel-reglas {
+  background: #f8fafc;
+  border: 1px solid var(--borde);
+}
+
+.reglas {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  line-height: 1.4;
+  color: #334155;
+}
+
+.reglas ::marker {
+  font-weight: 700;
+  color: var(--azul);
+}
+
+/* ===== Pie del tablero ===== */
+.board-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 2px solid var(--borde);
+}
+
+.footer-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+  background: #f8fafc;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 10px 14px;
+  flex: 1 1 260px;
+}
+
+.footer-bloque strong {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--texto-suave);
+}
+
+.footer-bloque span {
+  color: var(--texto);
+}
+
+.footer-bloque .num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+
+/* ===== Tarjetas de estado por quiniela ===== */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -91,25 +372,8 @@
   background: var(--azul);
 }
 
-.clientes h4 {
-  margin: 0 0 10px 0;
-}
-
-.clientes ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.clientes li {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #f8fafc;
+.btn-ver-aportes {
+  width: 100%;
 }
 
 .num {
@@ -125,83 +389,35 @@
   margin-top: 40px;
 }
 
-.aviso-anuncio {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 15px;
-  margin-bottom: 16px;
+/* ===== Responsivo ===== */
+@media (max-width: 900px) {
+  .board-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-.panel-como-aportar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 18px;
-  background: var(--tarjeta);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio);
-  padding: 18px 20px;
-  box-shadow: var(--sombra);
+@media (max-width: 720px) {
+  .board {
+    padding: 16px;
+  }
+
+  .board-aviso {
+    font-size: 18px;
+    padding: 14px 16px;
+  }
 }
 
-.panel-col h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
-  font-size: 16px;
-}
+@media print {
+  .board-scroll {
+    overflow: visible;
+  }
 
-.panel-col h4 {
-  margin: 16px 0 8px;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--texto-suave);
-}
+  .board {
+    border: none;
+    box-shadow: none;
+  }
 
-.lista-cuentas,
-.lista-horario {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  .board-tabla {
+    font-size: 11px;
+  }
 }
-
-.lista-cuentas li,
-.lista-horario li {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: #f8fafc;
-  font-size: 14px;
-}
-
-.lista-horario li {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.lista-cuentas .num {
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.03em;
-}
-
-.aviso-ejemplo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 16px;
-  font-size: 13px;
-  background: #fffbeb;
-  border: 1px dashed var(--ambar);
-  color: #92400e;
-  padding: 10px 14px;
-  border-radius: var(--radio);
-}
-

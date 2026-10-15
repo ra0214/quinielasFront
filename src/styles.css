@@ -230,6 +230,37 @@ body {
 .texto-amarillo { color: var(--ambar); font-weight: 700; }
 .saldo-cero { color: var(--texto-suave); }
 
+/* ===== Impresión: solo el tablero exportable ===== */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #exportable-board,
+  #exportable-board * {
+    visibility: visible;
+  }
+
+  #exportable-board {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .no-imprimir {
+    display: none !important;
+  }
+}
+
+@page {
+  margin: 10mm;
+}
+
 /* ===== Ajustes móviles globales ===== */
 @media (max-width: 720px) {
   /* Evita el zoom automático de iOS al enfocar campos */

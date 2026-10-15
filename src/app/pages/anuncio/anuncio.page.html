@@ -1,72 +1,17 @@
 <app-encabezado-pagina
+  class="no-imprimir"
   titulo="Anuncio de quinielas"
-  descripcion="Estado público de cada quiniela: costo total, fecha límite, recaudación y participantes">
-  <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
+  descripcion="Tablero de aportes para compartir: participantes, porcentajes, metas y datos de pago">
+  <button class="btn btn-secundario" (click)="cargar()">
+    <app-icono nombre="recargar" /> Recargar
+  </button>
+  <button class="btn btn-secundario" (click)="exportarImagen()" [disabled]="exportando || cargando">
+    <app-icono nombre="descargar" /> {{ exportando ? 'Generando…' : 'Exportar imagen' }}
+  </button>
+  <button class="btn btn-primario" (click)="imprimir()" [disabled]="cargando">
+    <app-icono nombre="imprimir" /> Imprimir / PDF
+  </button>
 </app-encabezado-pagina>
-
-<div class="aviso aviso-anuncio">
-  <app-icono nombre="megafono" />
-  <strong>Realiza tus aportes con nosotros, pregunte en ventanilla</strong>
-</div>
-
-<div class="resumen">
-  <app-tarjeta-resumen etiqueta="En juego" [valor]="enJuego" tono="verde" />
-  <app-tarjeta-resumen etiqueta="Completadas" [valor]="completadas" tono="azul" />
-  <app-tarjeta-resumen etiqueta="Meta global alcanzada" [valor]="porcentaje(porcentajeMeta)" tono="azul" />
-  <app-tarjeta-resumen etiqueta="Total recaudado" [valor]="totalRecaudado" tono="verde" />
-  <app-tarjeta-resumen etiqueta="Falta por recaudar" [valor]="moneda(totalResta)" tono="rojo" />
-</div>
-
-<div class="panel-como-aportar">
-  <div class="panel-col">
-    <h3><app-icono nombre="billetera" /> Cómo aportar</h3>
-    <p class="muted">{{ publicador }}</p>
-
-    <h4>Transferencias</h4>
-    <ul class="lista-cuentas">
-      @for (t of transferencias; track $index) {
-        <li>
-          <strong>{{ t.banco }}</strong> · Cuenta {{ t.tipo }}
-          <span class="num">{{ t.cuenta }}</span>
-          <span class="muted">{{ t.titular }}</span>
-        </li>
-      }
-    </ul>
-
-    <h4>Pago móvil</h4>
-    <p>
-      Banco <strong>{{ pagoMovil.banco }}</strong> · Teléfono
-      <strong>{{ pagoMovil.telefono }}</strong> · Cédula
-      <strong>{{ pagoMovil.cedula }}</strong>.
-    </p>
-    <p class="muted">{{ notaAportes }}</p>
-  </div>
-
-  <div class="panel-col">
-    <h3><app-icono nombre="reloj" /> Horario de ventanilla</h3>
-    <ul class="lista-horario">
-      @for (h of horario; track $index) {
-        <li>
-          <span>{{ h.dia }}</span>
-          <strong>{{ h.hora }}</strong>
-        </li>
-      }
-    </ul>
-
-    <h3><app-icono nombre="usuario" /> Contacto</h3>
-    <ul class="lista-horario">
-      <li><span>Teléfono</span><strong>{{ contacto.telefono }}</strong></li>
-      <li><span>WhatsApp</span><strong>{{ contacto.whatsapp }}</strong></li>
-      <li><span>Correo</span><strong>{{ contacto.correo }}</strong></li>
-    </ul>
-  </div>
-</div>
-
-<div class="aviso aviso-ejemplo">
-  <app-icono nombre="info" />
-  Datos de contacto, cuentas y horario son <strong>de ejemplo</strong>; se
-  reemplazarán por los reales.
-</div>
 
 @if (errorApi) {
   <div class="aviso aviso-error">{{ errorApi }}</div>
@@ -80,7 +25,121 @@
     <p>No hay quinielas para anunciar todavía.</p>
   </div>
 } @else {
-  <div class="grid">
+  <div class="resumen no-imprimir">
+    <app-tarjeta-resumen etiqueta="En juego" [valor]="enJuego" tono="verde" />
+    <app-tarjeta-resumen etiqueta="Completadas" [valor]="completadas" tono="azul" />
+    <app-tarjeta-resumen etiqueta="Meta global alcanzada" [valor]="porcentaje(porcentajeMeta)" tono="azul" />
+    <app-tarjeta-resumen etiqueta="Total recaudado" [valor]="totalRecaudado" tono="verde" />
+    <app-tarjeta-resumen etiqueta="Falta por recaudar" [valor]="moneda(totalResta)" tono="rojo" />
+  </div>
+
+  <!-- ===================== TABLERO EXPORTABLE ===================== -->
+  <div class="board-scroll">
+    <div id="exportable-board" class="board">
+      <div class="board-aviso">{{ avisoAporte }}</div>
+
+      <div class="board-grid">
+        <!-- Tabla dinámica de aportes -->
+        <div class="board-tabla-wrap">
+          <h3 class="board-titulo">Quinielas activas · Aportes</h3>
+          <table class="board-tabla">
+            <thead>
+              <tr>
+                <th class="th-participante" rowspan="2">Participante</th>
+                @for (col of columnasTablero; track col.id_quiniela) {
+                  <th class="th-quiniela" [class]="'th-quiniela ' + col.color" colspan="2">
+                    {{ col.titulo }}
+                  </th>
+                }
+              </tr>
+              <tr>
+                @for (col of columnasTablero; track col.id_quiniela) {
+                  <th [class]="'th-sub ' + col.color">Aportes</th>
+                  <th [class]="'th-sub ' + col.color">% Part.</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (fila of filasTablero; track fila.id_cliente) {
+                <tr>
+                  <td class="td-participante">{{ fila.nombre }}</td>
+                  @for (celda of fila.celdas; track $index) {
+                    <td class="num">{{ moneda(celda.monto) }}</td>
+                    <td class="num">{{ porcentaje(celda.porcentaje) }}</td>
+                  }
+                </tr>
+              } @empty {
+                <tr>
+                  <td class="td-vacio" [attr.colspan]="anchoTotalTablero">
+                    Aún no hay aportes en quinielas activas.
+                  </td>
+                </tr>
+              }
+            </tbody>
+            @if (columnasTablero.length > 0) {
+              <tfoot>
+                <tr class="fila-acumulado">
+                  <td class="td-participante">ACUMULADO</td>
+                  @for (col of columnasTablero; track col.id_quiniela) {
+                    <td class="num" colspan="2">{{ moneda(col.acumulado) }}</td>
+                  }
+                </tr>
+                <tr class="fila-falta">
+                  <td class="td-participante">FALTA PARA LA META</td>
+                  @for (col of columnasTablero; track col.id_quiniela) {
+                    <td class="num" colspan="2">{{ moneda(col.falta) }}</td>
+                  }
+                </tr>
+                <tr class="fila-meta">
+                  <td class="td-participante">META</td>
+                  @for (col of columnasTablero; track col.id_quiniela) {
+                    <td class="num" colspan="2">{{ moneda(col.meta) }}</td>
+                  }
+                </tr>
+              </tfoot>
+            }
+          </table>
+        </div>
+
+        <!-- Paneles de información -->
+        <aside class="board-info">
+          <section class="panel panel-pago">
+            <h3>Información de Pago</h3>
+            <p class="pago-titulo">{{ pago.titulo }}</p>
+            <p class="pago-nota">{{ pago.nota }}</p>
+            <ul class="pago-datos">
+              <li><span>Banco</span><strong>{{ pago.banco }}</strong></li>
+              <li><span>Titular</span><strong>{{ pago.titular }}</strong></li>
+              <li><span>CLABE</span><strong class="num">{{ pago.clabe }}</strong></li>
+            </ul>
+          </section>
+
+          <section class="panel panel-reglas">
+            <h3>Lista de Aportes</h3>
+            <ol class="reglas">
+              @for (r of reglas; track $index) {
+                <li>{{ r }}</li>
+              }
+            </ol>
+          </section>
+        </aside>
+      </div>
+
+      <footer class="board-footer">
+        <div class="footer-bloque">
+          <strong>Horario de ventanilla</strong>
+          <span>{{ ventanilla }}</span>
+        </div>
+        <div class="footer-bloque">
+          <strong>Contacto</strong>
+          <span>Teléfono y WhatsApp: <b class="num">{{ telefonoWhatsapp }}</b></span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ===================== ESTADO POR QUINIELA ===================== -->
+  <div class="grid no-imprimir">
     @for (q of anuncios(); track q.id_quiniela) {
       <article class="tarjeta" [class.tono-completada]="tono(q) === 'completada'"
         [class.tono-cancelable]="tono(q) === 'cancelable'"
@@ -106,7 +165,7 @@
             <span class="muted">Recaudado</span>
             <strong class="texto-verde">{{ moneda(q.recaudado) }}</strong>
           </div>
-                    <div class="dato">
+          <div class="dato">
             <span class="muted">Falta</span>
             <strong class="texto-rojo">{{ faltanteVisible(q) }}</strong>
           </div>
@@ -120,21 +179,9 @@
           </div>
         </div>
 
-        @if (q.clientes.length > 0) {
-          <div class="clientes">
-            <h4>Participación</h4>
-            <ul>
-              @for (c of q.clientes; track $index) {
-                <li>
-                  <span>{{ c.nombre }}</span>
-                  <span class="num">{{ porcentaje(c.porcentaje) }}</span>
-                </li>
-              }
-            </ul>
-          </div>
-        } @else {
-          <p class="muted">Aún no hay aportes registrados para esta quiniela.</p>
-        }
+        <button class="btn btn-secundario btn-ver-aportes" (click)="irATablero()">
+          <app-icono nombre="ver" /> Ver lista de aportes
+        </button>
       </article>
     }
   </div>
