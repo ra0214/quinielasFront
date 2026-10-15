@@ -192,6 +192,19 @@
         }
       </select>
     </div>
+    @if (formulario.tipo_quiniela === 'DESARROLLO') {
+      <div class="campo">
+        <label>Cancelación</label>
+        <label class="check-linea">
+          <input type="checkbox" [(ngModel)]="formulario.sujeto_cancelacion" />
+          <span>Sujeta a cancelación si no se alcanza la meta</span>
+        </label>
+        <div class="ayuda">
+          Si no se alcanza la meta a la fecha límite, se devuelve lo pagado y la quiniela se cancela.
+          Si no, el creador absorbe el faltante.
+        </div>
+      </div>
+    }
     <div class="campo">
       <label>ANALISTA <span class="req">*</span></label>
       <select [(ngModel)]="formulario.nombre_variante">
@@ -312,17 +325,6 @@
       }
     }
     @if (formulario.tipo_quiniela === 'DESARROLLO') {
-      <div class="campo">
-        <label>Punto de retorno</label>
-        <label class="check-linea">
-          <input type="checkbox" [(ngModel)]="formulario.sujeto_cancelacion" />
-          <span>Sujeta a cancelación si no se alcanza la meta</span>
-        </label>
-        <div class="ayuda">
-          Si no se alcanza la meta a la fecha límite, se devuelve lo pagado y la quiniela se cancela.
-          Si no, el creador absorbe el faltante.
-        </div>
-      </div>
       @if (requierePuntoRetorno) {
         <div class="campo">
           <label>Punto de retorno <span class="req">*</span></label>
