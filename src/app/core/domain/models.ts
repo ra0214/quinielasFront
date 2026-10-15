@@ -47,6 +47,10 @@ export interface Quiniela {
   analista?: string;
   tipo_pago?: TipoPagoQuiniela | string;
   canal_venta?: CanalVenta | string;
+  sujeto_cancelacion?: boolean;
+  estado_fallo?: number;
+  monto_meta_anterior?: number | null;
+  fecha_meta_anterior?: string | null;
 }
 
 export interface QuinielaRequest {
@@ -61,6 +65,9 @@ export interface QuinielaRequest {
   analista?: string;
   tipo_pago?: string;
   canal_venta?: string;
+  sujeto_cancelacion?: boolean;
+  /** Solo al aumentar la meta de una quiniela con aportes. */
+  punto_retorno?: boolean;
 }
 
 export interface Saldo {

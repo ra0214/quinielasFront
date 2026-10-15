@@ -41,6 +41,8 @@ interface FormularioQuiniela {
   monto_pagado: number | null; // pago de apertura / parcial (solo DIRECTA)
   primerAporte: number | null; // aporte inicial del creador (solo DESARROLLO, al crear)
   canal_venta: CanalVenta;
+  sujeto_cancelacion: boolean; // solo DESARROLLO
+  punto_retorno: boolean; // solo al aumentar la meta de una quiniela con aportes
 }
 
 @Component({
@@ -121,6 +123,10 @@ export class QuinielasPage implements OnInit {
   formulario: FormularioQuiniela = this.formularioVacio();
   guardando = false;
   errorFormulario = '';
+  /** Meta original de la quiniela en edición (para detectar aumentos). */
+  metaOriginal: number | null = null;
+  /** Se oculta la alerta de completado hasta el siguiente refresco. */
+  alertaCerrada = false;
 
   // Modal registrar aporte (misma ventana)
   aporteVisible = false;
@@ -149,12 +155,15 @@ export class QuinielasPage implements OnInit {
       monto_pagado: null,
       primerAporte: null,
       canal_venta: 'EN_LINEA',
+      sujeto_cancelacion: true,
+      punto_retorno: false,
     };
   }
 
   cargar(): void {
     this.cargando = true;
     this.errorApi = '';
+    this.alertaCerrada = false;
     forkJoin({
       quinielas: this.datos.listar(),
       ediciones: this.edicionesSvc.listar(),
@@ -280,6 +289,67 @@ export class QuinielasPage implements OnInit {
     return formatoMoneda(v);
   }
 
+  /** Al subir la meta de una quiniela con aportes hay que indicar el punto de retorno. */
+  get requierePuntoRetorno(): boolean {
+    const f = this.formulario;
+    if (this.editandoId === null) return false;
+    if (f.tipo_quiniela !== 'DESARROLLO') return false;
+    if (this.metaOriginal === null || (f.monto_meta ?? 0) <= this.metaOriginal) return false;
+    const recaudado = this.progreso(this.editandoId)?.recaudado ?? 0;
+    return recaudado > 0;
+  }
+
+  /** Quinielas DESARROLLO en juego que ya alcanzaron la meta (requieren decisión). */
+  get completadasPendientes(): QuinielaVista[] {
+    return this.quinielas().filter((q) => {
+      if (q.tipo_quiniela !== 'DESARROLLO' || q.estado !== 'EN_JUEGO') return false;
+      const recaudado = this.progreso(q.id_quiniela)?.recaudado ?? 0;
+      return recaudado > 0 && recaudado >= (q.monto_meta || 0);
+    });
+  }
+
+  get alertaCompletada(): QuinielaVista | null {
+    if (this.alertaCerrada) return null;
+    return this.completadasPendientes[0] ?? null;
+  }
+
+  cerrarAlerta(): void {
+    this.alertaCerrada = true;
+  }
+
+  private cuerpoDesdeQuiniela(q: QuinielaVista, estado: string): QuinielaRequest {
+    return {
+      id_edicion: q.id_edicion,
+      nombre_variante: q.nombre_variante,
+      monto_meta: q.monto_meta,
+      fecha_limite: q.fecha_limite,
+      estado,
+      tipo_quiniela: q.tipo_quiniela,
+      id_cliente: q.id_cliente ?? null,
+      monto_pagado: q.monto_pagado ?? 0,
+      analista: q.analista,
+      tipo_pago: q.tipo_pago,
+      canal_venta: q.canal_venta,
+      sujeto_cancelacion: q.sujeto_cancelacion,
+    };
+  }
+
+  marcarCompletada(q: QuinielaVista): void {
+    this.datos.actualizar(q.id_quiniela, this.cuerpoDesdeQuiniela(q, 'COMPLETADA')).subscribe({
+      next: () => {
+        this.toast.exito('Quiniela marcada como completada');
+        this.alertaCerrada = true;
+        this.cargar();
+      },
+      error: (e) => this.toast.error(e.message),
+    });
+  }
+
+  editarDesdeAlerta(q: QuinielaVista): void {
+    this.alertaCerrada = true;
+    this.editar(q);
+  }
+
   /** Total a cobrar al cliente: el costo total de la quiniela. */
   totalCobrar(q: Quiniela): number {
     return q.monto_meta || 0;
@@ -378,6 +448,7 @@ export class QuinielasPage implements OnInit {
 
   editar(q: QuinielaVista): void {
     this.editandoId = q.id_quiniela;
+    this.metaOriginal = q.monto_meta;
     this.formulario = {
       id_edicion: q.id_edicion,
       nombre_variante: q.nombre_variante,
@@ -390,6 +461,8 @@ export class QuinielasPage implements OnInit {
       monto_pagado: q.monto_pagado ?? null,
       primerAporte: null,
       canal_venta: (q.canal_venta as CanalVenta) || 'EN_LINEA',
+      sujeto_cancelacion: q.sujeto_cancelacion ?? true,
+      punto_retorno: false,
     };
     this.errorFormulario = '';
     this.modalVisible = true;
@@ -492,7 +565,12 @@ export class QuinielasPage implements OnInit {
       analista: f.nombre_variante,
       tipo_pago: esDesarrollo ? 'A_CREDITO' : f.tipo_pago,
       canal_venta: f.canal_venta,
+      sujeto_cancelacion: f.sujeto_cancelacion,
     };
+    // Al subir la meta de una quiniela con aportes hay que indicar el punto de retorno.
+    if (this.requierePuntoRetorno) {
+      cuerpo.punto_retorno = f.punto_retorno;
+    }
     this.guardando = true;
     this.errorFormulario = '';
 

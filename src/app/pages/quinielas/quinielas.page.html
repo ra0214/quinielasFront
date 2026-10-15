@@ -144,6 +144,26 @@
   </div>
 </app-modal>
 
+<!-- Alerta: quiniela DESARROLLO que ya alcanzó su meta -->
+<app-modal
+  [visible]="alertaCompletada !== null"
+  [titulo]="'Quiniela completada'"
+  (cerrar)="cerrarAlerta()">
+  @if (alertaCompletada; as q) {
+    <div class="aviso aviso-info">
+      La quiniela <strong>{{ q.nombre_variante }}</strong> ({{ q.nombre_edicion }}) ya alcanzó la meta de
+      {{ moneda(q.monto_meta) }}. Puedes marcarla como completada o seguir editándola.
+    </div>
+  }
+  <div pie>
+    <button class="btn btn-ghost" (click)="cerrarAlerta()">Más tarde</button>
+    @if (alertaCompletada; as q) {
+      <button class="btn btn-secundario" (click)="editarDesdeAlerta(q)">Editar</button>
+      <button class="btn btn-primario" (click)="marcarCompletada(q)">Marcar como completado</button>
+    }
+  </div>
+</app-modal>
+
 <app-modal
   [visible]="modalVisible"
   [titulo]="editandoId === null ? 'Nueva quiniela' : 'Editar quiniela'"
@@ -288,6 +308,33 @@
           <label>Monto pagado</label>
           <input type="number" [ngModel]="0" disabled />
           <div class="ayuda">Queda pendiente: {{ moneda(totalCobrarForm(formulario)) }}.</div>
+        </div>
+      }
+    }
+    @if (formulario.tipo_quiniela === 'DESARROLLO') {
+      <div class="campo">
+        <label>Punto de retorno</label>
+        <label class="check-linea">
+          <input type="checkbox" [(ngModel)]="formulario.sujeto_cancelacion" />
+          <span>Sujeta a cancelación si no se alcanza la meta</span>
+        </label>
+        <div class="ayuda">
+          Si no se alcanza la meta a la fecha límite, se devuelve lo pagado y la quiniela se cancela.
+          Si no, el creador absorbe el faltante.
+        </div>
+      </div>
+      @if (requierePuntoRetorno) {
+        <div class="campo">
+          <label>Punto de retorno <span class="req">*</span></label>
+          <label class="check-linea">
+            <input type="checkbox" [(ngModel)]="formulario.punto_retorno" />
+            <span>Marcar este aumento como punto de retorno</span>
+          </label>
+          <div class="ayuda">
+            Aumentaste la meta con aportes ya registrados. Con punto de retorno, ante un fallo se devuelve
+            el excedente sobre {{ moneda(metaOriginal ?? 0) }} y la meta vuelve al precio anterior. Sin punto
+            de retorno, los clientes absorben el aumento.
+          </div>
         </div>
       }
     }
