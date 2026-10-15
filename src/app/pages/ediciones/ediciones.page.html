@@ -40,13 +40,6 @@
     <button class="btn btn-mini btn-ghost" (click)="editar(fila)">
       <app-icono nombre="editar" /> Editar
     </button>
-    <button
-      class="btn btn-mini btn-peligro"
-      (click)="eliminar(fila)"
-      title="Eliminar edición"
-      aria-label="Eliminar edición">
-      <app-icono nombre="eliminar" />
-    </button>
   </ng-template>
 </app-tabla>
 
@@ -69,8 +62,17 @@
       <label>Número de concurso <span class="req">*</span></label>
       <input
         type="text"
+        inputmode="numeric"
+        autocomplete="off"
         [(ngModel)]="formulario.nombre_edicion"
+        (input)="soloNumeros($event)"
         placeholder="Ej. 2353" />
+      <div class="ayuda">Solo números.</div>
+    </div>
+    <div class="campo">
+      <label>Fecha límite <span class="req">*</span></label>
+      <input type="datetime-local" [(ngModel)]="formulario.fecha_limite" />
+      <div class="ayuda">Fecha y hora de cierre: después ya no se aceptan aportes.</div>
     </div>
     @if (editandoId !== null) {
       <div class="campo">
@@ -99,12 +101,3 @@
     <button class="btn btn-ghost" (click)="cerrarConsulta()">Cancelar</button>
   </div>
 </app-modal>
-
-<app-confirm-dialog
-  [visible]="!!pendiente"
-  titulo="Eliminar edición"
-  [mensaje]="'¿Seguro que deseas eliminar la edición ' + (pendiente?.nombre_edicion ?? '') + '? Esta acción no se puede deshacer.'"
-  textoConfirmar="Eliminar"
-  (confirmar)="confirmarEliminacion()"
-  (cancelar)="pendiente = null">
-</app-confirm-dialog>

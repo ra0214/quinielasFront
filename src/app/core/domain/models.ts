@@ -17,11 +17,13 @@ export interface Edicion {
   tipo_edicion: string;
   nombre_edicion: string;
   fecha_inicio: string;
+  fecha_limite: string | null;
 }
 
 export interface EdicionRequest {
   tipo_edicion: string;
   nombre_edicion: string;
+  fecha_limite: string | null;
 }
 
 export type EstadoQuiniela = 'EN_JUEGO' | 'COMPLETADA' | 'CANCELADA';

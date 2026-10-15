@@ -2,15 +2,20 @@ import { IconoComponent } from '../../ui/atoms/icono/icono.component';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Edicion, EdicionRequest } from '../../core/domain/models';
-import { formatoFecha } from '../../core/domain/helpers';
+import { aRfc3339, deRfc3339AInput, formatoFecha } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
-import { ConfirmDialogComponent } from '../../ui/molecules/confirm-dialog/confirm-dialog.component';
 import { ModalComponent } from '../../ui/molecules/modal/modal.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
 import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
 import { ColumnaTabla, TablaComponent } from '../../ui/organisms/tabla/tabla.component';
 import { EdicionesService } from './data-access/ediciones.service';
+
+interface FormularioEdicion {
+  tipo_edicion: string;
+  nombre_edicion: string;
+  fecha_limite: string; // valor de input datetime-local
+}
 
 @Component({
   selector: 'app-ediciones',
@@ -23,7 +28,6 @@ import { EdicionesService } from './data-access/ediciones.service';
     TablaComponent,
     CeldaDirective,
     ModalComponent,
-    ConfirmDialogComponent,
   ],
   templateUrl: './ediciones.page.html',
   styleUrl: './ediciones.page.css',
@@ -45,22 +49,20 @@ export class EdicionesPage implements OnInit {
     { clave: 'tipo_edicion', etiqueta: 'Tipo' },
     { clave: 'nombre_edicion', etiqueta: 'Número' },
     { clave: 'fecha_inicio', etiqueta: 'Inicio', tipo: 'fecha' },
+    { clave: 'fecha_limite', etiqueta: 'Cierra', tipo: 'fecha' },
     { clave: 'acciones', etiqueta: 'Acciones', clase: 'acciones', ordenable: false },
   ];
 
   // Modal crear/editar
   modalVisible = false;
   editandoId: number | null = null;
-  formulario: EdicionRequest = { tipo_edicion: 'FIN_DE_SEMANA', nombre_edicion: '' };
+  formulario: FormularioEdicion = { tipo_edicion: 'FIN_DE_SEMANA', nombre_edicion: '', fecha_limite: '' };
   fechaInicioEditando = '';
   guardando = false;
   errorFormulario = '';
 
   // Modal de consulta info
   consultaVisible = false;
-
-  // Eliminar
-  pendiente: Edicion | null = null;
 
   ngOnInit(): void {
     this.cargar();
@@ -95,9 +97,19 @@ export class EdicionesPage implements OnInit {
     return formatoFecha(v);
   }
 
+  /** Solo dígitos en "Número de concurso" (sin letras ni símbolos). */
+  soloNumeros(evento: Event): void {
+    const input = evento.target as HTMLInputElement;
+    const limpio = input.value.replace(/\D/g, '');
+    if (input.value !== limpio) {
+      input.value = limpio;
+      this.formulario.nombre_edicion = limpio;
+    }
+  }
+
   nuevo(): void {
     this.editandoId = null;
-    this.formulario = { tipo_edicion: 'FIN_DE_SEMANA', nombre_edicion: '' };
+    this.formulario = { tipo_edicion: 'FIN_DE_SEMANA', nombre_edicion: '', fecha_limite: '' };
     this.fechaInicioEditando = '';
     this.errorFormulario = '';
     this.modalVisible = true;
@@ -123,7 +135,11 @@ export class EdicionesPage implements OnInit {
 
   editar(e: Edicion): void {
     this.editandoId = e.id_edicion;
-    this.formulario = { tipo_edicion: e.tipo_edicion, nombre_edicion: e.nombre_edicion };
+    this.formulario = {
+      tipo_edicion: e.tipo_edicion,
+      nombre_edicion: e.nombre_edicion,
+      fecha_limite: deRfc3339AInput(e.fecha_limite),
+    };
     this.fechaInicioEditando = e.fecha_inicio;
     this.errorFormulario = '';
     this.modalVisible = true;
@@ -142,11 +158,20 @@ export class EdicionesPage implements OnInit {
       return;
     }
     if (!nombre) {
-      this.errorFormulario = 'El nombre de la edición es obligatorio.';
+      this.errorFormulario = 'El número de concurso es obligatorio.';
       return;
     }
-    const cuerpo: EdicionRequest = { tipo_edicion: tipo, nombre_edicion: nombre };
+    if (!this.formulario.fecha_limite) {
+      this.errorFormulario = 'La fecha límite es obligatoria.';
+      return;
+    }
+    const cuerpo: EdicionRequest = {
+      tipo_edicion: tipo,
+      nombre_edicion: nombre,
+      fecha_limite: aRfc3339(this.formulario.fecha_limite),
+    };
     this.guardando = true;
+    this.errorFormulario = '';
     this.errorFormulario = '';
 
     const peticion =
@@ -168,23 +193,4 @@ export class EdicionesPage implements OnInit {
     });
   }
 
-  eliminar(e: Edicion): void {
-    this.pendiente = e;
-  }
-
-  confirmarEliminacion(): void {
-    const e = this.pendiente;
-    if (!e) return;
-    this.datos.eliminar(e.id_edicion).subscribe({
-      next: (res) => {
-        this.toast.exito(res.message || 'Edición eliminada');
-        this.pendiente = null;
-        this.cargar();
-      },
-      error: (err) => {
-        this.toast.error(err.message);
-        this.pendiente = null;
-      },
-    });
-  }
 }
