@@ -3,12 +3,13 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { catchError, forkJoin, map, of } from 'rxjs';
-import { AporteDetalle, CanalVenta, Cliente, Edicion, EstadoQuiniela, Quiniela, QuinielaRequest, TipoPagoQuiniela, TipoQuiniela } from '../../core/domain/models';
+import { AporteDetalle, CanalVenta, Cliente, Edicion, EstadoQuiniela, METODOS_PAGO, Quiniela, QuinielaRequest, TipoPagoQuiniela, TipoQuiniela } from '../../core/domain/models';
 import { aRfc3339, deRfc3339AInput, formatoMoneda } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
 import { ChipsFiltroComponent, OpcionChip } from '../../ui/molecules/chips-filtro/chips-filtro.component';
+import { BuscadorClienteComponent } from '../../ui/molecules/buscador-cliente/buscador-cliente.component';
 import { ModalComponent } from '../../ui/molecules/modal/modal.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
 import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
@@ -43,6 +44,7 @@ interface FormularioQuiniela {
   canal_venta: CanalVenta;
   sujeto_cancelacion: boolean; // solo DESARROLLO
   punto_retorno: boolean; // solo al aumentar la meta de una quiniela con aportes
+  metodo_pago: string; // método del primer aporte (efectivo, tarjeta, etc.)
 }
 
 @Component({
@@ -58,6 +60,7 @@ interface FormularioQuiniela {
     CeldaDirective,
     ModalComponent,
     BadgeComponent,
+    BuscadorClienteComponent,
   ],
   templateUrl: './quinielas.page.html',
   styleUrl: './quinielas.page.css',
@@ -92,6 +95,7 @@ export class QuinielasPage implements OnInit {
     { valor: 'EN_LINEA', etiqueta: 'En línea' },
     { valor: 'VENTANILLA', etiqueta: 'Ventanilla' },
   ];
+  readonly metodosPago = METODOS_PAGO;
 
   // Filtros
   filtroEstado: 'TODAS' | EstadoQuiniela = 'TODAS';
@@ -132,7 +136,13 @@ export class QuinielasPage implements OnInit {
   aporteVisible = false;
 
   aportandoQuiniela: QuinielaVista | null = null;
-  aporteForm: { id_cliente: number; monto: number | null } = { id_cliente: 0, monto: null };
+  aporteForm: {
+    id_cliente: number;
+    monto: number | null;
+    tipo_pago: TipoPagoQuiniela;
+    monto_pagado: number | null;
+    metodo_pago: string;
+  } = { id_cliente: 0, monto: null, tipo_pago: 'CONTADO', monto_pagado: null, metodo_pago: METODOS_PAGO[0] };
   guardandoAporte = false;
   errorAporte = '';
 
@@ -157,6 +167,7 @@ export class QuinielasPage implements OnInit {
       canal_venta: 'EN_LINEA',
       sujeto_cancelacion: true,
       punto_retorno: false,
+      metodo_pago: METODOS_PAGO[0],
     };
   }
 
@@ -463,6 +474,7 @@ export class QuinielasPage implements OnInit {
       canal_venta: (q.canal_venta as CanalVenta) || 'EN_LINEA',
       sujeto_cancelacion: q.sujeto_cancelacion ?? true,
       punto_retorno: false,
+      metodo_pago: METODOS_PAGO[0],
     };
     this.errorFormulario = '';
     this.modalVisible = true;
@@ -546,12 +558,18 @@ export class QuinielasPage implements OnInit {
       this.errorFormulario = 'Selecciona el estado de la quiniela.';
       return;
     }
-    if (this.editandoId === null) {
-      const deEstaEdicion = this.quinielas().filter((q) => q.id_edicion === f.id_edicion).length;
-      if (deEstaEdicion >= 5) {
-        this.errorFormulario = 'Se alcanzó el límite de 5 quinielas por edición.';
-        return;
-      }
+    // Un mismo analista (variante) no puede repetirse dentro del mismo número
+    // (edición); además, cada número admite como máximo 5 quinielas.
+    const deEstaEdicion = this.quinielas().filter(
+      (q) => q.id_edicion === f.id_edicion && q.id_quiniela !== this.editandoId
+    );
+    if (deEstaEdicion.length >= 5) {
+      this.errorFormulario = 'Cada número admite como máximo 5 quinielas.';
+      return;
+    }
+    if (deEstaEdicion.some((q) => q.nombre_variante === f.nombre_variante)) {
+      this.errorFormulario = `El analista ${f.nombre_variante} ya tiene una quiniela en este número.`;
+      return;
     }
 
     const cuerpo: QuinielaRequest = {
@@ -586,7 +604,7 @@ export class QuinielasPage implements OnInit {
         // En DESARROLLO el creador registra su aporte inicial (suma a la recaudación).
         if (primerAporte > 0 && creada) {
           this.aportes
-            .crear({ id_cliente: f.id_cliente, id_quiniela: creada.id_quiniela, monto: primerAporte, monto_pagado: pagoAporte })
+            .crear({ id_cliente: f.id_cliente, id_quiniela: creada.id_quiniela, monto: primerAporte, monto_pagado: pagoAporte, metodo_pago: f.metodo_pago })
             .subscribe({
               next: () => {
                 this.toast.exito('Quiniela creada con su aporte inicial');
@@ -618,10 +636,18 @@ export class QuinielasPage implements OnInit {
 
   abrirAporte(q: QuinielaVista): void {
     this.aportandoQuiniela = q;
-    this.aporteForm = { id_cliente: 0, monto: null };
+    this.aporteForm = { id_cliente: 0, monto: null, tipo_pago: 'CONTADO', monto_pagado: null, metodo_pago: METODOS_PAGO[0] };
     this.errorAporte = '';
     this.guardandoAporte = false;
     this.aporteVisible = true;
+  }
+
+  /** Cuánto del aporte rápido queda fiado al cliente. */
+  get pendienteAporte(): number {
+    const monto = this.aporteForm.monto ?? 0;
+    if (this.aporteForm.tipo_pago === 'A_CREDITO') return monto;
+    if (this.aporteForm.tipo_pago === 'PAGO_PARCIAL') return Math.max(0, monto - (this.aporteForm.monto_pagado ?? 0));
+    return 0;
   }
 
   cerrarAporteModal(): void {
@@ -656,18 +682,43 @@ export class QuinielasPage implements OnInit {
       return;
     }
 
+    // Tipo de pago: contado (todo pagado), por pagos (parcial) o fiado (0 pagado).
+    let montoPagado = monto;
+    if (this.aporteForm.tipo_pago === 'A_CREDITO') {
+      montoPagado = 0;
+    } else if (this.aporteForm.tipo_pago === 'PAGO_PARCIAL') {
+      const pagado = this.aporteForm.monto_pagado;
+      if (pagado == null || isNaN(pagado) || pagado < 0) {
+        this.errorAporte = 'Indica cuánto se pagó del aporte.';
+        return;
+      }
+      if (pagado > monto) {
+        this.errorAporte = `Lo pagado no puede superar el monto del aporte (${this.moneda(monto)}).`;
+        return;
+      }
+      montoPagado = pagado;
+    }
+
     this.guardandoAporte = true;
     this.errorAporte = '';
-    this.aportes.crear({ id_cliente: this.aporteForm.id_cliente, id_quiniela: q.id_quiniela, monto }).subscribe({
-      next: (res) => {
-        this.toast.exito(res.message || 'Aporte registrado correctamente');
-        this.cerrarAporteModal();
-        this.cargar();
-      },
-      error: (e) => {
-        this.errorAporte = e.message;
-        this.guardandoAporte = false;
-      },
-    });
+    this.aportes
+      .crear({
+        id_cliente: this.aporteForm.id_cliente,
+        id_quiniela: q.id_quiniela,
+        monto,
+        monto_pagado: montoPagado,
+        metodo_pago: this.aporteForm.metodo_pago,
+      })
+      .subscribe({
+        next: (res) => {
+          this.toast.exito(res.message || 'Aporte registrado correctamente');
+          this.cerrarAporteModal();
+          this.cargar();
+        },
+        error: (e) => {
+          this.errorAporte = e.message;
+          this.guardandoAporte = false;
+        },
+      });
   }
 }

@@ -8,7 +8,8 @@ import { Aporte, Cliente, ClienteRequest, Movimiento, Saldo } from '../../core/d
 import { formatoFecha, formatoMoneda } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { ConfirmDialogComponent } from '../../ui/molecules/confirm-dialog/confirm-dialog.component';
-import { BuscadorComponent } from '../../ui/molecules/buscador/buscador.component';
+import { ChipsFiltroComponent, OpcionChip } from '../../ui/molecules/chips-filtro/chips-filtro.component';
+import { BuscadorClienteComponent } from '../../ui/molecules/buscador-cliente/buscador-cliente.component';
 import { ModalComponent } from '../../ui/molecules/modal/modal.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
 import { TablaComponent, ColumnaTabla } from '../../ui/organisms/tabla/tabla.component';
@@ -17,7 +18,7 @@ import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-
 import { ClientesService } from './data-access/clientes.service';
 import { MovimientosService } from '../movimientos/data-access/movimientos.service';
 import { AportesService } from '../aportes/data-access/aportes.service';
-import { SaldosService } from '../saldos/data-access/saldos.service';
+import { FiltroSaldo, SaldosService } from '../saldos/data-access/saldos.service';
 import { QuinielasService } from '../quinielas/data-access/quinielas.service';
 import { Quiniela, EstadoQuiniela } from '../../core/domain/models';
 
@@ -49,7 +50,8 @@ function limiteHistorial(): number {
     FormsModule,
     EncabezadoPaginaComponent,
     TarjetaResumenComponent,
-    BuscadorComponent,
+    ChipsFiltroComponent,
+    BuscadorClienteComponent,
     TablaComponent,
     CeldaDirective,
     ModalComponent,
@@ -78,8 +80,39 @@ export class ClientesPage implements OnInit {
     return String(this.clientes().length);
   }
 
-  // Búsqueda
+  // Búsqueda por nombre (con sugerencias) y filtro por saldo
   busqueda = '';
+  filtroSaldo: 'todos' | FiltroSaldo = 'todos';
+  readonly opcionesSaldo: OpcionChip[] = [
+    { etiqueta: 'Todos', valor: 'todos' },
+    { etiqueta: 'Deben', valor: 'deben', claseActivo: 'activo-rojo' },
+    { etiqueta: 'A favor', valor: 'favor', claseActivo: 'activo-verde' },
+    { etiqueta: 'En cero', valor: 'ceros' },
+  ];
+
+  /** Clientes visibles tras aplicar la búsqueda por nombre y el filtro de saldo. */
+  get clientesFiltrados(): Cliente[] {
+    let base = this.clientes();
+    const t = this.busqueda.trim().toLowerCase();
+    if (t) base = base.filter((c) => c.nombre.toLowerCase().includes(t));
+    if (this.filtroSaldo !== 'todos') {
+      base = base.filter((c) => {
+        const n = this.saldoNeto(c);
+        if (this.filtroSaldo === 'deben') return n < 0;
+        if (this.filtroSaldo === 'favor') return n > 0;
+        return n === 0;
+      });
+    }
+    return base;
+  }
+
+  onBusqueda(texto: string): void {
+    this.busqueda = texto;
+  }
+
+  aplicarFiltroSaldo(valor: string): void {
+    this.filtroSaldo = valor as 'todos' | FiltroSaldo;
+  }
 
   readonly columnas: ColumnaTabla[] = [
     { clave: 'nombre', etiqueta: 'Nombre' },
@@ -147,19 +180,6 @@ export class ClientesPage implements OnInit {
         this.errorApi = e.message;
         this.cargando = false;
       },
-    });
-  }
-
-  buscar(termino: string): void {
-    if (!termino.trim()) {
-      this.cargar();
-      return;
-    }
-    this.cargando = true;
-    this.datos.buscar(termino.trim()).subscribe({
-      next: (lista) => this.clientes.set(lista),
-      error: (e) => (this.errorApi = e.message),
-      complete: () => (this.cargando = false),
     });
   }
 

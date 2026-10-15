@@ -3,13 +3,14 @@ import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Aporte, AporteDetalle, Cliente, Quiniela } from '../../core/domain/models';
+import { Aporte, AporteDetalle, Cliente, METODOS_PAGO, Quiniela } from '../../core/domain/models';
 import { formatoMoneda, formatoPorcentaje } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
 import { ConfirmDialogComponent } from '../../ui/molecules/confirm-dialog/confirm-dialog.component';
 import { ChipsFiltroComponent, OpcionChip } from '../../ui/molecules/chips-filtro/chips-filtro.component';
+import { BuscadorClienteComponent } from '../../ui/molecules/buscador-cliente/buscador-cliente.component';
 import { ModalComponent } from '../../ui/molecules/modal/modal.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
 import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
@@ -20,11 +21,23 @@ import { QuinielasService } from '../quinielas/data-access/quinielas.service';
 
 type VistaAportes = 'quiniela' | 'cliente';
 
+type TipoPagoAporte = 'CONTADO' | 'PAGO_PARCIAL' | 'A_CREDITO';
+
 interface FormAporte {
   id_cliente: number | null;
   id_quiniela: number | null;
   monto: number | null;
+  tipo_pago: TipoPagoAporte;
+  monto_pagado: number | null;
+  metodo_pago: string;
 }
+
+/** Opciones de tipo de pago de un aporte: contado, por pagos o fiado. */
+const TIPOS_PAGO: { valor: TipoPagoAporte; etiqueta: string }[] = [
+  { valor: 'CONTADO', etiqueta: 'Contado' },
+  { valor: 'PAGO_PARCIAL', etiqueta: 'Por pagos' },
+  { valor: 'A_CREDITO', etiqueta: 'Fiado' },
+];
 
 @Component({
   selector: 'app-aportes-page',
@@ -40,6 +53,7 @@ interface FormAporte {
     ModalComponent,
     ConfirmDialogComponent,
     BadgeComponent,
+    BuscadorClienteComponent,
   ],
   templateUrl: './aportes.page.html',
   styleUrl: './aportes.page.css',
@@ -84,9 +98,11 @@ export class AportesPage implements OnInit, OnDestroy {
   ];
 
   // Modal crear/editar aporte
+  readonly tiposPago = TIPOS_PAGO;
+  readonly metodosPago = METODOS_PAGO;
   modalVisible = false;
   editando: Aporte | null = null;
-  form: FormAporte = { id_cliente: null, id_quiniela: null, monto: null };
+  form: FormAporte = this.formVacio();
   guardando = false;
   errorFormulario = '';
   recaudadoQuinielaForm = 0;
@@ -178,6 +194,12 @@ export class AportesPage implements OnInit, OnDestroy {
     });
   }
 
+  /** Filtro por cliente de la vista "Por cliente". */
+  onClienteFiltro(id: number | null): void {
+    this.idClienteSel = id;
+    this.cargarAportesCliente();
+  }
+
   private recargarVista(): void {
     if (this.vista === 'quiniela') this.cargarAportesQuiniela();
     else this.cargarAportesCliente();
@@ -231,12 +253,24 @@ export class AportesPage implements OnInit, OnDestroy {
   }
 
   // ===== Crear / editar aporte =====
+  private formVacio(): FormAporte {
+    return { id_cliente: null, id_quiniela: null, monto: null, tipo_pago: 'CONTADO', monto_pagado: null, metodo_pago: METODOS_PAGO[0] };
+  }
+
+  /** Cuánto del aporte queda pendiente (fiado) según el tipo de pago elegido. */
+  get pendienteForm(): number {
+    const monto = this.form.monto ?? 0;
+    if (this.form.tipo_pago === 'A_CREDITO') return monto;
+    if (this.form.tipo_pago === 'PAGO_PARCIAL') return Math.max(0, monto - (this.form.monto_pagado ?? 0));
+    return 0;
+  }
+
   nuevo(): void {
     this.editando = null;
     this.form = {
+      ...this.formVacio(),
       id_cliente: this.vista === 'cliente' ? this.idClienteSel : null,
       id_quiniela: this.vista === 'quiniela' ? this.idQuinielaSel : null,
-      monto: null,
     };
     this.recaudadoQuinielaForm = this.vista === 'quiniela' && this.idQuinielaSel ? this.totalRecaudado : 0;
     this.errorFormulario = '';
@@ -246,6 +280,7 @@ export class AportesPage implements OnInit, OnDestroy {
   editar(a: Aporte): void {
     this.editando = a;
     this.form = {
+      ...this.formVacio(),
       id_cliente: a.id_cliente,
       id_quiniela: a.id_quiniela,
       monto: a.monto_total_acumulado,
@@ -314,6 +349,27 @@ export class AportesPage implements OnInit, OnDestroy {
       return;
     }
 
+    if (monto > this.maxMonto) {
+      this.errorFormulario = `El monto excede lo solicitado: solo faltan ${formatoMoneda(this.maxMonto)} por recaudar.`;
+      return;
+    }
+
+    let montoPagado = monto;
+    if (this.form.tipo_pago === 'A_CREDITO') {
+      montoPagado = 0;
+    } else if (this.form.tipo_pago === 'PAGO_PARCIAL') {
+      const pagado = this.form.monto_pagado;
+      if (pagado === null || isNaN(pagado) || pagado < 0) {
+        this.errorFormulario = 'Indica cuánto del aporte se pagó.';
+        return;
+      }
+      if (pagado > monto) {
+        this.errorFormulario = `Lo pagado no puede superar el monto aportado (${formatoMoneda(monto)}).`;
+        return;
+      }
+      montoPagado = pagado;
+    }
+
     this.guardando = true;
     this.errorFormulario = '';
 
@@ -323,6 +379,8 @@ export class AportesPage implements OnInit, OnDestroy {
           id_cliente: this.form.id_cliente,
           id_quiniela: this.form.id_quiniela,
           monto,
+          monto_pagado: montoPagado,
+          metodo_pago: this.form.metodo_pago,
         });
 
     peticion.subscribe({

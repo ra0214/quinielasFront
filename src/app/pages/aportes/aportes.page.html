@@ -87,12 +87,11 @@
     <h3>Cliente a consultar</h3>
     <div class="campo selector">
       <label>Cliente <span class="req">*</span></label>
-      <select [(ngModel)]="idClienteSel" (change)="cargarAportesCliente()">
-        <option [ngValue]="null" disabled>— Selecciona un cliente —</option>
-        @for (c of clientes(); track c.id_cliente) {
-          <option [ngValue]="c.id_cliente">{{ c.nombre }} · #{{ c.id_cliente }}</option>
-        }
-      </select>
+      <app-buscador-cliente
+        [clientes]="clientes()"
+        [idSeleccionado]="idClienteSel"
+        placeholder="Escribe el nombre del cliente…"
+        (idSeleccionadoChange)="onClienteFiltro($event)" />
       <div class="ayuda">Muestra todos los aportes acumulados del cliente.</div>
     </div>
   </div>
@@ -153,12 +152,11 @@
       <input [value]="nombreDe(editando)" disabled />
       <div class="ayuda">El cliente no cambia al editar un aporte.</div>
     } @else {
-      <select [(ngModel)]="form.id_cliente">
-        <option [ngValue]="null" disabled>— Selecciona un cliente —</option>
-        @for (c of clientes(); track c.id_cliente) {
-          <option [ngValue]="c.id_cliente">{{ c.nombre }} · #{{ c.id_cliente }}</option>
-        }
-      </select>
+      <app-buscador-cliente
+        [clientes]="clientes()"
+        [idSeleccionado]="form.id_cliente"
+        placeholder="Escribe el nombre del cliente…"
+        (idSeleccionadoChange)="form.id_cliente = $event" />
     }
   </div>
   <div class="campo">
@@ -215,6 +213,69 @@
       }
       <div class="ayuda">Se suma al acumulado si ya existe un aporte.</div>
     </div>
+    @if (!editando) {
+      <div class="campo">
+        <label>Tipo de pago <span class="req">*</span></label>
+        <select [(ngModel)]="form.tipo_pago">
+          @for (t of tiposPago; track t.valor) {
+            <option [value]="t.valor">{{ t.etiqueta }}</option>
+          }
+        </select>
+        <div class="ayuda">
+          @switch (form.tipo_pago) {
+            @case ('CONTADO') {
+              No genera deuda: el aporte queda totalmente pagado.
+            }
+            @case ('PAGO_PARCIAL') {
+              Lo pagado se registra y el resto queda como saldo en contra del cliente.
+            }
+            @default {
+              Fiado: todo el aporte queda como saldo en contra del cliente.
+            }
+          }
+        </div>
+      </div>
+      <div class="campo">
+        <label>Método de pago <span class="req">*</span></label>
+        <select [(ngModel)]="form.metodo_pago">
+          @for (m of metodosPago; track m) {
+            <option [value]="m">{{ m }}</option>
+          }
+        </select>
+        @if (form.tipo_pago === 'CONTADO') {
+          <div class="ayuda">Con qué pagó el cliente su aporte.</div>
+        } @else if (form.tipo_pago === 'PAGO_PARCIAL') {
+          <div class="ayuda">Método de la parte pagada.</div>
+        } @else {
+          <div class="ayuda">Se aplicará cuando el cliente pague su deuda.</div>
+        }
+      </div>
+      @if (form.tipo_pago === 'PAGO_PARCIAL') {
+        <div class="campo">
+          <label>Monto pagado <span class="req">*</span></label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            [max]="form.monto ?? 0"
+            placeholder="0.00"
+            [(ngModel)]="form.monto_pagado" />
+          <div class="ayuda">Quedará fiado: {{ moneda(pendienteForm) }}.</div>
+        </div>
+      } @else if (form.tipo_pago === 'CONTADO') {
+        <div class="campo">
+          <label>Monto pagado</label>
+          <input type="number" [ngModel]="form.monto ?? 0" disabled />
+          <div class="ayuda">El aporte se paga por completo.</div>
+        </div>
+      } @else {
+        <div class="campo">
+          <label>Monto pagado</label>
+          <input type="number" [ngModel]="0" disabled />
+          <div class="ayuda">Todo el aporte queda fiado: {{ moneda(form.monto ?? 0) }}.</div>
+        </div>
+      }
+    }
   </div>
 
   <div pie>

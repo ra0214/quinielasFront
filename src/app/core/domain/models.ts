@@ -99,7 +99,12 @@ export interface AporteRequest {
   monto: number;
   /** Cuánto del aporte se pagó; si se omite, se asume pagado por completo. */
   monto_pagado?: number;
+  /** Método con el que se pagó (Efectivo, Transferencia, Depósito o Tarjeta). */
+  metodo_pago?: string;
 }
+
+/** Métodos con los que un cliente puede pagar. */
+export const METODOS_PAGO = ['Efectivo', 'Transferencia', 'Depósito', 'Tarjeta'] as const;
 
 export type TipoMovimiento =
   | 'PAGO_EFECTIVO'

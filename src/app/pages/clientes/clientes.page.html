@@ -9,10 +9,14 @@
 </div>
 
 <div class="toolbar">
-  <app-buscador
-    [(texto)]="busqueda"
-    (buscado)="buscar($event)"
-    placeholder="Buscar cliente por nombre…" />
+  <app-buscador-cliente
+    [clientes]="clientes()"
+    placeholder="Escribe el nombre del cliente…"
+    (textoChange)="onBusqueda($event)" />
+  <app-chips-filtro
+    [opciones]="opcionesSaldo"
+    [activo]="filtroSaldo"
+    (cambio)="aplicarFiltroSaldo($event)" />
   <button class="btn btn-secundario" (click)="cargar()"><app-icono nombre="recargar" /> Recargar</button>
 </div>
 
@@ -22,12 +26,12 @@
 
 <app-tabla
   [columnas]="columnas"
-  [filas]="clientes()"
+  [filas]="clientesFiltrados"
   [cargando]="cargando"
   [columnaOrden]="'nombre'"
   trackClave="id_cliente"
   iconoVacio="usuarios"
-  [mensajeVacio]="busqueda ? 'No se encontraron clientes con ese nombre' : 'Aún no hay clientes registrados'">
+  [mensajeVacio]="busqueda || filtroSaldo !== 'todos' ? 'No hay clientes que coincidan con el filtro' : 'Aún no hay clientes registrados'">
   <ng-template celda="nombre" let-fila>
     <strong>{{ fila.nombre }}</strong>
   </ng-template>

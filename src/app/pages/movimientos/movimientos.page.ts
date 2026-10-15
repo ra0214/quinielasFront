@@ -16,6 +16,7 @@ import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
 import { ChipsFiltroComponent, OpcionChip } from '../../ui/molecules/chips-filtro/chips-filtro.component';
 import { ConfirmDialogComponent } from '../../ui/molecules/confirm-dialog/confirm-dialog.component';
+import { BuscadorClienteComponent } from '../../ui/molecules/buscador-cliente/buscador-cliente.component';
 import { ModalComponent } from '../../ui/molecules/modal/modal.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
 import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
@@ -44,6 +45,7 @@ interface MovimientoVista extends Movimiento {
     CeldaDirective,
     ModalComponent,
     ConfirmDialogComponent,
+    BuscadorClienteComponent,
   ],
   templateUrl: './movimientos.page.html',
   styleUrl: './movimientos.page.css',
@@ -195,8 +197,8 @@ export class MovimientosPage implements OnInit, OnDestroy {
     });
   }
 
-  onClienteCambio(valor: number | ''): void {
-    this.clienteSeleccionado = valor;
+  onClienteCambio(valor: number | null): void {
+    this.clienteSeleccionado = valor ?? '';
     this.cargarMovimientos();
   }
 

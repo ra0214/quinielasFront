@@ -6,7 +6,7 @@ import { formatoMoneda } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
 import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
-import { BuscadorComponent } from '../../ui/molecules/buscador/buscador.component';
+import { BuscadorClienteComponent } from '../../ui/molecules/buscador-cliente/buscador-cliente.component';
 import { ChipsFiltroComponent, OpcionChip } from '../../ui/molecules/chips-filtro/chips-filtro.component';
 import { ModalComponent } from '../../ui/molecules/modal/modal.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
@@ -42,7 +42,7 @@ const METODOS_PAGO = ['En efectivo', 'Por tarjeta', 'Por transferencia', 'Por de
     EncabezadoPaginaComponent,
     TarjetaResumenComponent,
     ChipsFiltroComponent,
-    BuscadorComponent,
+    BuscadorClienteComponent,
     TablaComponent,
     CeldaDirective,
     ModalComponent,
@@ -58,6 +58,7 @@ export class SaldosPage implements OnInit {
   private readonly toast = inject(ToastService);
 
   readonly filas = signal<FilaSaldo[]>([]);
+  readonly clientes = signal<Cliente[]>([]);
   private nombres = new Map<number, string>();
 
   cargando = true;
@@ -99,6 +100,7 @@ export class SaldosPage implements OnInit {
   ngOnInit(): void {
     this.clientesSvc.listar().subscribe({
       next: (lista) => {
+        this.clientes.set(lista);
         this.nombres = new Map(lista.map((c: Cliente) => [c.id_cliente, c.nombre]));
         this.cargar();
       },

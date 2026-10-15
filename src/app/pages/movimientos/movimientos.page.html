@@ -12,12 +12,11 @@
 <div class="toolbar">
   <div class="campo" style="margin-bottom: 0; min-width: 250px">
     <label>Cliente</label>
-    <select [ngModel]="clienteSeleccionado" (ngModelChange)="onClienteCambio($event)">
-      <option [ngValue]="''">Todos los clientes</option>
-      @for (c of clientes(); track c.id_cliente) {
-        <option [ngValue]="c.id_cliente">{{ c.nombre }}</option>
-      }
-    </select>
+    <app-buscador-cliente
+      [clientes]="clientes()"
+      [idSeleccionado]="clienteSeleccionado === '' ? null : clienteSeleccionado"
+      placeholder="Todos los clientes"
+      (idSeleccionadoChange)="onClienteCambio($event)" />
   </div>
 
   <app-chips-filtro
@@ -82,12 +81,12 @@
   <div class="formulario-grid">
     <div class="campo">
       <label>Cliente <span class="req">*</span></label>
-      <select [(ngModel)]="formulario.id_cliente" [disabled]="!!editando">
-        <option [ngValue]="0" disabled>— Selecciona un cliente —</option>
-        @for (c of clientes(); track c.id_cliente) {
-          <option [ngValue]="c.id_cliente">{{ c.nombre }}</option>
-        }
-      </select>
+      <app-buscador-cliente
+        [clientes]="clientes()"
+        [idSeleccionado]="formulario.id_cliente || null"
+        [deshabilitado]="!!editando"
+        placeholder="Escribe el nombre del cliente…"
+        (idSeleccionadoChange)="formulario.id_cliente = $event ?? 0" />
     </div>
     <div class="campo">
       <label>Quiniela (opcional)</label>

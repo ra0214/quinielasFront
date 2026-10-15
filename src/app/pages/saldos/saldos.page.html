@@ -15,9 +15,10 @@
 </div>
 
 <div class="toolbar">
-  <app-buscador
-    [(texto)]="busqueda"
-    placeholder="Filtrar por nombre de cliente…" />
+  <app-buscador-cliente
+    [clientes]="clientes()"
+    placeholder="Filtrar por nombre de cliente…"
+    (textoChange)="busqueda = $event" />
   <app-badge [valor]="lista.length + ' en pantalla'" variante="gris" />
 </div>
 
