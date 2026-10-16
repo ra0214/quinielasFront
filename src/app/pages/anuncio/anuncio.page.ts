@@ -146,6 +146,11 @@ export class AnuncioPage implements OnInit {
   }
 
   private cargarAportes(quinielas: Quiniela[], ediciones: Edicion[]): void {
+    if (quinielas.length === 0) {
+      this.anuncios.set([]);
+      this.cargando = false;
+      return;
+    }
     const tiposEdicion = new Map(ediciones.map((e) => [e.id_edicion, e.tipo_edicion]));
     const nombresEdicion = new Map(ediciones.map((e) => [e.id_edicion, e.nombre_edicion]));
     const peticiones = quinielas.map((q) =>
