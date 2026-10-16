@@ -179,10 +179,35 @@
           </div>
         </div>
 
-        <button class="btn btn-secundario btn-ver-aportes" (click)="irATablero()">
+        <button class="btn btn-secundario btn-ver-aportes" (click)="verAportes(q)">
           <app-icono nombre="ver" /> Ver lista de aportes
         </button>
       </article>
     }
   </div>
 }
+
+<!-- Modal: Lista de aportes de una quiniela -->
+  <app-modal [visible]="modalAportesVisible" [grande]="true" [titulo]="modalQuiniela?.etiqueta || 'Lista de aportes'" (cerrar)="cerrarModalAportes()">
+    @if (modalQuiniela) {
+      <app-tabla
+        [columnas]="columnasAportes"
+        [filas]="modalQuiniela.clientes"
+        [cargando]="false"
+        columnaOrden="monto"
+        [ascendente]="false"
+        trackClave="id_cliente"
+        iconoVacio="grafica"
+        mensajeVacio="Esta quiniela aún no tiene aportes registrados">
+        <ng-template celda="nombre" let-fila>
+          {{ fila.nombre }}
+        </ng-template>
+        <ng-template celda="monto" let-fila>
+          {{ moneda(fila.monto) }}
+        </ng-template>
+        <ng-template celda="porcentaje" let-fila>
+          {{ porcentaje(fila.porcentaje) }}
+        </ng-template>
+      </app-tabla>
+    }
+  </app-modal>

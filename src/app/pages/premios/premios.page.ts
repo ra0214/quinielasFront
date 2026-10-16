@@ -52,6 +52,7 @@ export class PremiosPage implements OnInit {
   readonly quinielas = signal<Quiniela[]>([]);
   readonly ediciones = signal<Edicion[]>([]);
 
+  nombresEdicion: Record<number, string> = {};
   cargando = false;
   errorApi = '';
 
@@ -119,14 +120,14 @@ export class PremiosPage implements OnInit {
     const tipos = this.mapaTiposEdicion;
     const mapa: Record<number, string> = {};
     for (const q of this.quinielas()) {
-      mapa[q.id_quiniela] = construirEtiquetaQuiniela(q.nombre_variante, tipos[q.id_edicion], q.id_quiniela);
+      mapa[q.id_quiniela] = construirEtiquetaQuiniela(q.nombre_variante, tipos[q.id_edicion], this.nombresEdicion[q.id_edicion], q.id_quiniela);
     }
     return mapa;
   }
 
   /** Etiqueta "Analista - Tipo de edición - Número" de una quiniela. */
   etiquetaQuiniela(q: Quiniela): string {
-    return construirEtiquetaQuiniela(q.nombre_variante, this.mapaTiposEdicion[q.id_edicion], q.id_quiniela);
+    return construirEtiquetaQuiniela(q.nombre_variante, this.mapaTiposEdicion[q.id_edicion], this.nombresEdicion[q.id_edicion], q.id_quiniela);
   }
 
   get lista(): PremioVista[] {

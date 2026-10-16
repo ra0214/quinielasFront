@@ -260,7 +260,8 @@ export class AportesPage implements OnInit, OnDestroy {
   /** Etiqueta "Analista - Tipo de edición - Número" de una quiniela. */
   etiquetaQuiniela(q: Quiniela): string {
     const tipo = this.ediciones().find((e) => e.id_edicion === q.id_edicion)?.tipo_edicion;
-    return construirEtiquetaQuiniela(q.nombre_variante, tipo, q.id_quiniela);
+    const numero = this.ediciones().find((e) => e.id_edicion === q.id_edicion)?.nombre_edicion;
+    return construirEtiquetaQuiniela(q.nombre_variante, tipo, numero, q.id_quiniela);
   }
 
   nombreQuinielaLabel(a: Aporte): string {

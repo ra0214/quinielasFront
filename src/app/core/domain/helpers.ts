@@ -95,11 +95,13 @@ export function etiquetaTipoEdicion(tipo: string | null | undefined): string {
 export function etiquetaQuiniela(
   nombreVariante: string | null | undefined,
   tipoEdicion: string | null | undefined,
-  idQuiniela: number
+  numeroEdicion: string | null | undefined,
+  idQuiniela?: number
 ): string {
-  const partes = [nombreVariante || `Quiniela #${idQuiniela}`];
+  const partes = [nombreVariante || (idQuiniela ? `Quiniela #${idQuiniela}` : 'Quiniela')];
   const tipo = etiquetaTipoEdicion(tipoEdicion);
   if (tipo) partes.push(tipo);
-  partes.push(String(idQuiniela));
+  if (numeroEdicion) partes.push(numeroEdicion);
+  else if (idQuiniela) partes.push(String(idQuiniela));
   return partes.join(' - ');
 }

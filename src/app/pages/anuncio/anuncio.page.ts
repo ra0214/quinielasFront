@@ -1,11 +1,15 @@
 import { IconoComponent } from '../../ui/atoms/icono/icono.component';
+import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { catchError, forkJoin, map, of } from 'rxjs';
 import html2canvas from 'html2canvas';
 import { AporteDetalle, Edicion, Quiniela } from '../../core/domain/models';
 import { etiquetaQuiniela, formatoFecha, formatoMoneda, formatoPorcentaje } from '../../core/domain/helpers';
 import { ToastService } from '../../core/services/toast.service';
-import { BadgeComponent } from '../../ui/atoms/badge/badge.component';
+import { ModalComponent } from '../../ui/molecules/modal/modal.component';
+import { TablaComponent } from '../../ui/organisms/tabla/tabla.component';
+import { ColumnaTabla } from '../../ui/organisms/tabla/tabla.component';
+import { CeldaDirective } from '../../ui/organisms/tabla/celda.directive';
 import { TarjetaResumenComponent } from '../../ui/atoms/tarjeta-resumen/tarjeta-resumen.component';
 import { EncabezadoPaginaComponent } from '../../ui/organisms/encabezado-pagina/encabezado-pagina.component';
 import { AportesService } from '../aportes/data-access/aportes.service';
@@ -65,6 +69,8 @@ type TonoAnuncio = 'completada' | 'cancelable' | 'cancelada' | 'activa';
     EncabezadoPaginaComponent,
     TarjetaResumenComponent,
     BadgeComponent,
+    ModalComponent,
+    TablaComponent,
   ],
   templateUrl: './anuncio.page.html',
   styleUrl: './anuncio.page.css',
@@ -78,7 +84,15 @@ export class AnuncioPage implements OnInit {
   readonly anuncios = signal<AnuncioQuiniela[]>([]);
   cargando = true;
   errorApi = '';
+  modalAportesVisible = false;
+  modalQuiniela: AnuncioQuiniela | null = null;
   exportando = false;
+
+  readonly columnasAportes: ColumnaTabla[] = [
+    { clave: 'nombre', etiqueta: 'Participante' },
+    { clave: 'monto', etiqueta: 'Monto' },
+    { clave: 'porcentaje', etiqueta: '% Participación' },
+  ];
 
   // ===== Aviso y datos de pago / contacto / reglas =====
   readonly avisoAporte =
@@ -164,7 +178,7 @@ export class AnuncioPage implements OnInit {
       id_quiniela: q.id_quiniela,
       variante: q.nombre_variante,
       edicion: nombresEdicion.get(q.id_edicion) ?? `Edición #${q.id_edicion}`,
-      etiqueta: etiquetaQuiniela(q.nombre_variante, tiposEdicion.get(q.id_edicion), q.id_quiniela),
+      etiqueta: etiquetaQuiniela(q.nombre_variante, tiposEdicion.get(q.id_edicion), nombresEdicion.get(q.id_edicion), q.id_quiniela),
       monto_meta: q.monto_meta,
       fecha_limite: q.fecha_limite,
       estado: q.estado,
@@ -292,6 +306,16 @@ export class AnuncioPage implements OnInit {
   }
 
   // ===== Acciones =====
+
+  verAportes(q: AnuncioQuiniela): void {
+    this.modalQuiniela = q;
+    this.modalAportesVisible = true;
+  }
+
+  cerrarModalAportes(): void {
+    this.modalAportesVisible = false;
+    this.modalQuiniela = null;
+  }
 
   /** Lleva al tablero de aportes (participación con un clic). */
   irATablero(): void {
