@@ -16,8 +16,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   standalone: true,
   template: `
     @if (visible) {
-      <div class="overlay" (click)="cancelar.emit()">
-        <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="overlay">
+        <div class="dialog">
           <h3>{{ titulo }}</h3>
           <p>{{ mensaje }}</p>
           <div class="dialog-acciones">

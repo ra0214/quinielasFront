@@ -15,8 +15,8 @@ import { IconoComponent } from '../../atoms/icono/icono.component';
   imports: [IconoComponent],
   template: `
     @if (visible) {
-      <div class="overlay" (click)="cerrar.emit()">
-        <div [class]="'modal' + (grande ? ' modal-grande' : '')" (click)="$event.stopPropagation()">
+      <div class="overlay">
+        <div [class]="'modal' + (grande ? ' modal-grande' : '')">
           <div class="modal-cabecera">
             <h3>{{ titulo }}</h3>
             <button type="button" class="cerrar" (click)="cerrar.emit()" aria-label="Cerrar">
